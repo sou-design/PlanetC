@@ -1,0 +1,16 @@
+{
+	"commentStamp" : "",
+	"super" : "CMCell",
+	"category" : "PlanetC-Model",
+	"classinstvars" : [ ],
+	"pools" : [ ],
+	"classvars" : [ ],
+	"instvars" : [
+		"biomassLevel",
+		"isProtected",
+		"visitState",
+		"nbNewBorns"
+	],
+	"name" : "PCCell",
+	"type" : "normal"
+}

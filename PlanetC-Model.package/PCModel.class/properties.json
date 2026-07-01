@@ -1,0 +1,14 @@
+{
+	"commentStamp" : "",
+	"super" : "CMModel",
+	"category" : "PlanetC-Model",
+	"classinstvars" : [ ],
+	"pools" : [ ],
+	"classvars" : [ ],
+	"instvars" : [
+		"nbFamilies",
+		"currentRound"
+	],
+	"name" : "PCModel",
+	"type" : "normal"
+}

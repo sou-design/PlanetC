@@ -1,0 +1,14 @@
+{
+	"commentStamp" : "",
+	"super" : "CMAgent",
+	"category" : "PlanetC-Model",
+	"classinstvars" : [ ],
+	"pools" : [ ],
+	"classvars" : [ ],
+	"instvars" : [
+		"collectedBiomass",
+		"household"
+	],
+	"name" : "PCHarvester",
+	"type" : "normal"
+}

@@ -1,0 +1,13 @@
+{
+	"commentStamp" : "",
+	"super" : "CMAgentGroup",
+	"category" : "PlanetC-Model",
+	"classinstvars" : [ ],
+	"pools" : [ ],
+	"classvars" : [ ],
+	"instvars" : [
+		"color"
+	],
+	"name" : "PCHouseHold",
+	"type" : "normal"
+}

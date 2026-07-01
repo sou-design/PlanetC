@@ -1,0 +1,11 @@
+{
+	"commentStamp" : "",
+	"super" : "CMAgent",
+	"category" : "PlanetC-Model",
+	"classinstvars" : [ ],
+	"pools" : [ ],
+	"classvars" : [ ],
+	"instvars" : [ ],
+	"name" : "PCBird",
+	"type" : "normal"
+}

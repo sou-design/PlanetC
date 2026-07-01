@@ -1,0 +1,4 @@
+accessing
+biomassLevel
+
+	^ biomassLevel
