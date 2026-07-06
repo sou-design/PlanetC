@@ -6,15 +6,13 @@ init
 	self
 		createGridNumberOfRows: 4
 		numberOfColumns: 5
-		neighbourhood: 4
+		neighbourhood: 8
 		closed: true.
 
 		self applyBiomassMatrix: self initialBiomassMatrix.
-		self initializeHouseHolds.
 		self initializeRanger.
 		self initializeBirds.
-"		PCCell activePovSelector: #pov.
-		PCHarvester activePovSelector: #pov."
+	PCCell activePovSelector: #pov.
 		"Example of creating agents and randomly positioning them on a grid"
 		
 	"self createN: 3 randomlyLocatedEntities: YourAgentClass1.
