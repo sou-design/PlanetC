@@ -3,6 +3,7 @@ init
 	<init>
 	self makeAgentsScatteredInCells.
 	currentRound := 1.
+	currentPhase := 1.
 	self
 		createGridNumberOfRows: 4
 		numberOfColumns: 5
@@ -11,8 +12,7 @@ init
 
 		self applyBiomassMatrix: self initialBiomassMatrix.
 		self initializeRanger.
-		self initializeBirds.
-	PCCell activePovSelector: #pov.
+
 		"Example of creating agents and randomly positioning them on a grid"
 		
 	"self createN: 3 randomlyLocatedEntities: YourAgentClass1.

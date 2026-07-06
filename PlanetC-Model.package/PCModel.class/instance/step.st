@@ -1,32 +1,25 @@
 as yet unclassified
-"step
-
+step
 	<control>
-	""self households do: [ :household | household resetHarvest ].""
-	self households do: [ :household | household moveHarvesters ].
+	currentRound > 5 ifTrue: [ ^ self ].
 
-	""2. cells handle biomass and birds""
-	self cells do: [ :cell | cell updateVisitState ].
-	self cells do: [ :cell | cell updateBiomass ].
-	self cells do: [ :cell | cell updateNewbornBirds ].
-	self cells do: [ :cell | cell isProtected: false ].
-	self rangers do: [ :ranger | ranger protectCells ]."
-step 
-	<control>
-	currentRound = 1 ifTrue: [ self initializeHouseHolds ].
-	
-	self cells do: [ :cell | cell updateNewbornBirds ].
+	currentPhase = 1 ifTrue: [
+		currentRound = 1 ifTrue: [ self initializeHouseHolds ].
+		self cells do: [ :cell | cell regrowBiomass ].
+		self installAdultBirds.
+		self households do: [ :h | h leaveHarvesters ] ]. 
 
-		currentRound > 1 ifTrue: [
-		self cells do: [ :cell | cell updateBiomass ].
+	currentPhase = 2 ifTrue: [
 		self cells do: [ :cell | cell isProtected: false ].
-		self rangers do: [ :ranger | ranger protectCells ] 
-		
-		].
-		self households do: [ :h | h resetHarvest ].
-		self households do: [ :h | h moveHarvesters ].
+		self rangers do: [ :ranger | ranger protectCells ] ].
 
-		
+	currentPhase = 3 ifTrue: [
+		self households do: [ :h | h resetHarvest ].
+		self households do: [ :h | h moveHarvesters ].      
+		self cells do: [ :cell | cell collectHarvest ].
 		self cells do: [ :cell | cell updateVisitState ].
-	
-		currentRound := currentRound + 1.
+		self cells do: [ :cell | cell updateNewbornBirds ] ].
+
+	currentPhase = 3
+		ifTrue: [ currentPhase := 1. currentRound := currentRound + 1 ]
+		ifFalse: [ currentPhase := currentPhase + 1 ]

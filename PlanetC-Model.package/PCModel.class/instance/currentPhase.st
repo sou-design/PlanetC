@@ -1,0 +1,4 @@
+accessing
+currentPhase
+
+	^ currentPhase

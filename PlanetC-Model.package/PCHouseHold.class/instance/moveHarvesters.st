@@ -1,6 +1,5 @@
 as yet unclassified
-moveHarvesters 
-	self activeHarvesters do: [ :harvester |
+moveHarvesters
+	children do: [ :harvester |
 		harvester moveTo: self cormasModel cells atRandom ]
-
 

@@ -1,15 +1,11 @@
 {
 	"commentStamp" : "",
-	"super" : "CMModel",
+	"super" : "CMTileset",
 	"category" : "PlanetC-Model",
 	"classinstvars" : [ ],
 	"pools" : [ ],
 	"classvars" : [ ],
-	"instvars" : [
-		"nbFamilies",
-		"currentRound",
-		"currentPhase"
-	],
-	"name" : "PCModel",
+	"instvars" : [ ],
+	"name" : "PCTiles",
 	"type" : "normal"
 }
