@@ -5,7 +5,7 @@ updateNewbornBirds
 	self hasHarvesters ifTrue: [ nbNewBorns := 0. ^ self ].
 	disturbedCount := self neighbourhood count: [ :c | c hasHarvesters ].
 	disturbanceRate := disturbedCount / self neighbourhood size asFloat.
-	nbNewBorns := disturbanceRate > 0.5
+	nbNewBorns := disturbanceRate >= 0.5
 		ifTrue:  [ 0 ]
 		ifFalse: [ disturbanceRate > 0.2
 			ifTrue:  [ 1 ]

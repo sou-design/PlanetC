@@ -3,4 +3,4 @@ newBornIcon
 	<tile>
 	^ self tiles
 		at: #newBornIcon
-		ifAbsentPut: [ CMTile newFrom: self newBornIconContents ]
+		ifAbsentPut: [ CMTile newFrom: self newBornIconData ]

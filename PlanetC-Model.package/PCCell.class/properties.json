@@ -9,7 +9,8 @@
 		"biomassLevel",
 		"isProtected",
 		"visitState",
-		"nbNewBorns"
+		"nbNewBorns",
+		"pendingBiomassLevel"
 	],
 	"name" : "PCCell",
 	"type" : "normal"

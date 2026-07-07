@@ -11,9 +11,6 @@ init
 		closed: true.
 
 		self applyBiomassMatrix: self initialBiomassMatrix.
+		self initializeHouseHolds.
 		self initializeRanger.
-
-		"Example of creating agents and randomly positioning them on a grid"
-		
-	"self createN: 3 randomlyLocatedEntities: YourAgentClass1.
-	self createN: 3 randomlyLocatedAloneEntities: YourAgentClass2."
+		self initializeBirds .

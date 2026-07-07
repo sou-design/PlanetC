@@ -17,7 +17,7 @@ collectHarvest
 		ifTrue: [
 			(shuffled at: 1) collect: 2.
 			(shuffled at: 2) collect: 1.
-			self biomassLevel: (harvesters size = 2 ifTrue: [ 1 ] ifFalse: [ 0 ]) ]
+			pendingBiomassLevel := (harvesters size = 2 ifTrue: [ 1 ] ifFalse: [ 0 ]) ]
 		ifFalse: [
 			shuffled first collect: biomassLevel.
-			self biomassLevel: 0 ]
+			pendingBiomassLevel := 0 ]

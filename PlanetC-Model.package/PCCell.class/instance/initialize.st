@@ -4,5 +4,5 @@ initialize
 	super initialize.
 	biomassLevel := 0.
 	isProtected := false.
-	visitState  := #leftLastRound.
+	visitState  := #occupied.
 	nbNewBorns := 0.

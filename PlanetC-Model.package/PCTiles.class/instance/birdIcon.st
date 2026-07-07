@@ -3,4 +3,4 @@ birdIcon
 	<tile>
 	^ self tiles
 		at: #birdIcon
-		ifAbsentPut: [ CMTile newFrom: self birdIconContents ]
+		ifAbsentPut: [ CMTile newFrom: self birdIconData ]

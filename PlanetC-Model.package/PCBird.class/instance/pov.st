@@ -5,7 +5,7 @@ pov
 		ifTrue: [
 	^ CMPointOfView new
 		tile: (PCTiles bird);
-		size: 0.35;
+		size: 0.4;
 		yourself
 		]
 	ifFalse: [
