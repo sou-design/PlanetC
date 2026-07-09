@@ -1,0 +1,11 @@
+{
+	"commentStamp" : "",
+	"super" : "CMGameRole",
+	"category" : "PlanetC-Model",
+	"classinstvars" : [ ],
+	"pools" : [ ],
+	"classvars" : [ ],
+	"instvars" : [ ],
+	"name" : "PCRangerRole",
+	"type" : "normal"
+}
