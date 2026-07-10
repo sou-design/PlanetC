@@ -1,0 +1,11 @@
+{
+	"commentStamp" : "",
+	"super" : "CMGame",
+	"category" : "PlanetC-Model",
+	"classinstvars" : [ ],
+	"pools" : [ ],
+	"classvars" : [ ],
+	"instvars" : [ ],
+	"name" : "PCGame",
+	"type" : "normal"
+}
