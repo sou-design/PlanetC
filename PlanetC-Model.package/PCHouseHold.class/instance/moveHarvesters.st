@@ -1,5 +1,9 @@
 as yet unclassified
 moveHarvesters
+	| nonEmptyCells |
+	nonEmptyCells := self cormasModel cells select: [ :cell | cell isEmpty not ].
 	children do: [ :harvester |
-		harvester moveTo: self cormasModel cells atRandom ]
+		harvester moveTo: (nonEmptyCells isEmpty
+			ifTrue: [ self cormasModel cells atRandom ]
+			ifFalse: [ nonEmptyCells atRandom ]) ]
 

@@ -4,5 +4,6 @@ initialize
 	super initialize.
 	biomassLevel := 0.
 	isProtected := false.
-	visitState  := #occupied.
+	nonHarvestTime := 0.
 	nbNewBorns := 0.
+	pendingBiomassLevel := nil

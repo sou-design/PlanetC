@@ -2,13 +2,13 @@ as yet unclassified
 step
 	<control>
 	currentRound > maxRounds ifTrue: [ ^ self ].
-
-	currentPhase = 1 ifTrue: [
-	self cells do: [ :cell | cell isProtected: false ]. 
-	self cells do: [ :cell | cell applyPendingHarvest ].  
-	self cells do: [ :cell | cell regrowBiomass ].       
+currentPhase = 1 ifTrue: [
+	self cells do: [ :cell | cell isProtected: false ].
+	self cells do: [ :cell | cell applyPendingHarvest ].
+	currentRound = 1 ifFalse: [
+		self cells do: [ :cell | cell regrowBiomass ] ].
 	self installAdultBirds.
-	self households do: [ :h | h leaveHarvesters ] ]. 
+	self households do: [ :h | h leaveHarvesters ] ].
 
 	currentPhase = 2 ifTrue: [
 		self rangers do: [ :ranger | ranger protectCells ] ].
@@ -17,7 +17,7 @@ currentPhase = 3 ifTrue: [
 		self households do: [ :h | h resetHarvest ].
 		self households do: [ :h | h moveHarvesters ].
 		self cells do: [ :cell | cell collectHarvest ].
-		self cells do: [ :cell | cell updateVisitState ].
+		self cells do: [ :cell | cell updateNonHarvestTime ].
 		self cells do: [ :cell | cell updateNewbornBirds ] ].
 
 	currentPhase = 3

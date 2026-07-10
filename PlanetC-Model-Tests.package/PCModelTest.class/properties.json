@@ -5,7 +5,10 @@
 	"classinstvars" : [ ],
 	"pools" : [ ],
 	"classvars" : [ ],
-	"instvars" : [ ],
+	"instvars" : [
+		"model",
+		"cell"
+	],
 	"name" : "PCModelTest",
 	"type" : "normal"
 }
