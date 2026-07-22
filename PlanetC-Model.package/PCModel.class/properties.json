@@ -9,7 +9,9 @@
 		"nbFamilies",
 		"currentRound",
 		"currentPhase",
-		"maxRounds"
+		"maxRounds",
+		"submittedMoves",
+		"submittedProtection"
 	],
 	"name" : "PCModel",
 	"type" : "normal"
