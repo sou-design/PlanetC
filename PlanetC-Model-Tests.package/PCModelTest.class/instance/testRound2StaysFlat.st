@@ -1,7 +1,6 @@
 tests
-testRound3StartsDeclining
+testRound2StaysFlat
 	cell regrowBiomass.
 	cell regrowBiomass.
-	cell regrowBiomass.
-	self assert: cell biomassLevel equals: 1.
+	self assert: cell biomassLevel equals: 2.
 	self assert: cell nonHarvestTime equals: 2
