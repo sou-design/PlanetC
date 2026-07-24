@@ -6,7 +6,8 @@
 	"pools" : [ ],
 	"classvars" : [ ],
 	"instvars" : [
-		"roundProcess"
+		"roundProcess",
+		"runnerPresenter"
 	],
 	"name" : "PCGame",
 	"type" : "normal"

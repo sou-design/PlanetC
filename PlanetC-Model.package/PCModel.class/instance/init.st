@@ -1,6 +1,7 @@
 as yet unclassified
 init
 	<init>
+	self makeAgentsScatteredInCells.
 	currentRound := 1.
 	currentPhase := 1.
 	submittedMoves := Dictionary new.
