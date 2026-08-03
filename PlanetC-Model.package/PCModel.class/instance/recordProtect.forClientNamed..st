@@ -1,7 +1,6 @@
 as yet unclassified
 recordProtect: cellsArray forClientNamed: aName
-	| ranger |
-	cellsArray ifNil: [ ^ self ].
-	ranger := self rangerForClientNamed: aName.
-	ranger ifNil: [ ^ self ].
-	submittedProtection := cellsArray
+	cellsArray ifNotNil: [ :cells |
+		| ranger |
+		ranger := self linkClientNamed: aName toEntityIn: self rangers.
+		submittedProtection at: ranger put: cells ]

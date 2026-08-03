@@ -1,0 +1,4 @@
+accessing
+biomassToApply
+
+	^ biomassToApply

@@ -1,7 +1,5 @@
 as yet unclassified
 recordMove: cellsArray forClientNamed: aName
 	| household |
-	cellsArray ifNil: [ ^ self ].
-	household := self householdForClientNamed: aName.
-	household ifNil: [ ^ self ].
+	household := self linkClientNamed: aName toEntityIn: self households.
 	submittedMoves at: household put: cellsArray

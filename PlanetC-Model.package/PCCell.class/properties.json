@@ -10,7 +10,7 @@
 		"isProtected",
 		"visitState",
 		"nbNewBorns",
-		"pendingBiomassLevel",
+		"biomassToApply",
 		"nonHarvestTime"
 	],
 	"name" : "PCCell",

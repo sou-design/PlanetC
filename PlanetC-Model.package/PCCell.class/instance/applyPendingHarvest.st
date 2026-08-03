@@ -1,5 +1,5 @@
 as yet unclassified
 applyPendingHarvest
-	pendingBiomassLevel ifNotNil: [
-		self biomassLevel: pendingBiomassLevel.
-		pendingBiomassLevel := nil ]
+	biomassToApply >= 0 ifTrue: [
+		self biomassLevel: biomassToApply.
+		biomassToApply := -1 ]

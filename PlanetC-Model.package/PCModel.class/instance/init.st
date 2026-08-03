@@ -10,4 +10,3 @@ init
 	self applyBiomassMatrix: self initialBiomassMatrix.
 	self initializeHouseHolds.
 	self initializeRanger.
-	self initializeBirds .

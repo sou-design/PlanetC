@@ -1,4 +1,0 @@
-accessing
-pendingBiomassLevel
-
-	^ pendingBiomassLevel

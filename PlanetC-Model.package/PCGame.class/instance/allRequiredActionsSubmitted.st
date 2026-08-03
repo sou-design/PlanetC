@@ -1,16 +1,18 @@
 initialization
 allRequiredActionsSubmitted
-	| model result |
+	| model |
 	model := self cormasModel.
-	result := true.
+
 	model currentPhase = 2 ifTrue: [
 		| activeRangers |
-		activeRangers := model rangers select: [ :r | r name notNil ].
-		result := activeRangers isEmpty not
-			and: [ (model instVarNamed: 'submittedProtection') isEmpty not ] ].
+		activeRangers := model rangers select: [ :r | r name isNotNil ].
+		^ activeRangers isEmpty not and: [ model submittedProtection isNotEmpty ] ].
+
 	model currentPhase = 3 ifTrue: [
-		| activeHouseholds |
-		activeHouseholds := model households select: [ :h | h name notNil ].
-		result := activeHouseholds isEmpty not
-			and: [ (model instVarNamed: 'submittedMoves') size >= activeHouseholds size ] ].
-	^ result
+		| activeHouseholds submitted |
+		activeHouseholds := model households select: [ :h | h name isNotNil ].
+		submitted := model submittedMoves.
+		^ activeHouseholds isEmpty not
+			and: [ activeHouseholds allSatisfy: [ :h | submitted includesKey: h ] ] ].
+
+	^ true
