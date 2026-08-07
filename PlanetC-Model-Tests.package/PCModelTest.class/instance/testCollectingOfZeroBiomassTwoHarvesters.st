@@ -1,0 +1,10 @@
+as yet unclassified
+testCollectingOfZeroBiomassTwoHarvesters 
+ 
+	cell biomassLevel: 0.
+	harvester moveTo: cell.
+	harvester2 moveTo: cell.
+	cell collectHarvest.
+ 
+	self assertHarvesters: (OrderedCollection with: harvester with: harvester2)
+		collectedBiomassMatches: #(0 0)
