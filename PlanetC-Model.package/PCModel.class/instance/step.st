@@ -18,12 +18,13 @@ step
 			ifTrue: [ self rangers do: [ :ranger | ranger protectCells ] ] ].
 	currentPhase = 3 ifTrue: [
 		self households do: [ :h | h resetHarvest ].
-		self households do: [ :h |
-			(submittedMoves includesKey: h)
-				ifTrue: [ h moveHarvestersTo: (submittedMoves at: h) ]
-				ifFalse: [
-					h name isEmpty
-						ifTrue: [ h moveHarvesters ] ] ].
+self households do: [ :h |
+	Transcript showCr: 'household: ', h identityHash asString, ' name: ', h name, ' hasSubmitted: ', (submittedMoves includesKey: h) asString.
+	(submittedMoves includesKey: h)
+		ifTrue: [ h moveHarvestersTo: (submittedMoves at: h) ]
+		ifFalse: [
+				(self households anySatisfy: [ :any | any name isNotEmpty ])
+					ifFalse: [ h moveHarvesters ] ] ].
 		submittedMoves := Dictionary new.
 		self cells do: [ :cell | cell collectHarvest ].
 		self cells do: [ :cell | cell updateNonHarvestTime ].

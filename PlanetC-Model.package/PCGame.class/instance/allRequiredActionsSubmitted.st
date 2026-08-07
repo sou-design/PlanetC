@@ -8,9 +8,9 @@ allRequiredActionsSubmitted
 		activeRangers := model rangers select: [ :r | r name isNotNil ].
 		^ activeRangers isEmpty not and: [ model submittedProtection isNotEmpty ] ].
 
-	model currentPhase = 3 ifTrue: [
+model currentPhase = 3 ifTrue: [
 		| activeHouseholds submitted |
-		activeHouseholds := model households select: [ :h | h name isNotNil ].
+		activeHouseholds := model households select: [ :h | h name isNotEmpty ].
 		submitted := model submittedMoves.
 		^ activeHouseholds isEmpty not
 			and: [ activeHouseholds allSatisfy: [ :h | submitted includesKey: h ] ] ].
