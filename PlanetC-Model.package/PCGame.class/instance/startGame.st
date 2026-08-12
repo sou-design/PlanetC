@@ -2,5 +2,7 @@ initialization
 startGame
 	super startGame.
 	self assignRolesToConnectedClients.
-	self runStep.
+	self broadcastBiomass.
+	self broadcastBirds.
+	self refreshCormasUI.
 	self startRoundTimer

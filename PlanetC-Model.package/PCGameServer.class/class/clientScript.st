@@ -31,16 +31,16 @@ const ROWS = 4;
 const TOTAL_CELLS = COLUMNS * ROWS;
 const HARVESTER_COLORS = ["#e63946", "#1d3557", "#2a9d8f", "#f4a261"];
 const MAX_PROTECTED_ZONES = 3;
-const PHASE_DURATION_MS = 120000;
+const RANGER_WINDOW_MS = 10000;
+const HOUSEHOLD_WINDOW_MS = 120000;
 
 let myRole = null;
 let locked = false;
-let currentPhase = null;
 let currentRound = null;
 let reconnectAttempts = 0;
 let myName = null;
 let countdownInterval = null;
-let phaseDeadline = null;
+let roundStartTime = null;
 const harvesterPlacement = [null, null, null, null];
 const protectedZones = new Set();
 
@@ -62,12 +62,16 @@ function showGame() {
   gameEl.classList.remove("hidden");
 }
 
+function rangerWindowOpen() {
+  return roundStartTime != null && (Date.now() - roundStartTime) < RANGER_WINDOW_MS;
+}
+
 function canMoveHarvesters() {
-  return myRole === "Household" && currentPhase === 3 && !locked;
+  return myRole === "Household" && roundStartTime != null && !rangerWindowOpen() && !locked;
 }
 
 function canProtectZones() {
-  return myRole === "Ranger" && currentPhase === 2 && !locked;
+  return myRole === "Ranger" && rangerWindowOpen() && !locked;
 }
 
 function resetRoundSelections() {
@@ -80,41 +84,49 @@ function resetRoundSelections() {
 
 function startCountdown() {
   if (countdownInterval) clearInterval(countdownInterval);
-  const duration = currentPhase === 2 ? 10000 : PHASE_DURATION_MS;
-  phaseDeadline = Date.now() + duration;
+  roundStartTime = Date.now();
   updateCountdownDisplay();
-  countdownInterval = setInterval(updateCountdownDisplay, 1000);
+  updateActionVisibility();
+  countdownInterval = setInterval(() => {
+    updateCountdownDisplay();
+    updateActionVisibility();
+  }, 1000);
 }
 
 function updateCountdownDisplay() {
-  const remaining = Math.max(0, Math.round((phaseDeadline - Date.now()) / 1000));
+  const elapsed = Date.now() - roundStartTime;
+  const remainingMs = rangerWindowOpen()
+    ? RANGER_WINDOW_MS - elapsed
+    : (RANGER_WINDOW_MS + HOUSEHOLD_WINDOW_MS) - elapsed;
+  const remaining = Math.max(0, Math.round(remainingMs / 1000));
   const mins = Math.floor(remaining / 60);
   const secs = remaining % 60;
   countdownLine.textContent = "Time left: " + mins + ":" + String(secs).padStart(2, "0");
-  if (remaining <= 0) clearInterval(countdownInterval);
 }
 
 function updateActionVisibility() {
   statusLine.textContent = currentRound != null
-    ? "Round " + currentRound + " - Phase " + currentPhase
+    ? "Round " + currentRound + (rangerWindowOpen() ? " - Ranger\u0027s turn" : " - Household\u0027s turn")
     : "";
 
   if (myRole === "Household") {
-    trayEl.classList.toggle("hidden", currentPhase !== 3);
-    sendBtn.classList.toggle("hidden", currentPhase !== 3);
+    const myTurn = !rangerWindowOpen();
+    trayEl.classList.toggle("hidden", !myTurn || locked);
+    sendBtn.classList.toggle("hidden", !myTurn || locked);
     protectBtn.classList.add("hidden");
     Object.values(cellEls).forEach(c => c.classList.remove("protectable"));
-    if (currentPhase === 3) instructions.textContent = "Drag your harvesters onto the grid, then send.";
-    else if (currentPhase === 2) instructions.textContent = "Waiting for the Ranger to protect zones...";
-    else instructions.textContent = "Waiting for the round to begin...";
+    if (!myTurn) instructions.textContent = "Waiting for the Ranger to protect zones...";
+    else if (locked) instructions.textContent = "Waiting for the round to resolve...";
+    else instructions.textContent = "Drag your harvesters onto the grid, then send.";
   } else if (myRole === "Ranger") {
+    const myTurn = rangerWindowOpen();
     sendBtn.classList.add("hidden");
     trayEl.classList.add("hidden");
-    protectBtn.classList.toggle("hidden", currentPhase !== 2);
-    Object.values(cellEls).forEach(c => c.classList.toggle("protectable", currentPhase === 2));
-    if (currentPhase === 2) instructions.textContent = "Click up to " + MAX_PROTECTED_ZONES + " cells to protect, then send.";
-    else if (currentPhase === 3) instructions.textContent = "Waiting for Households to move their harvesters...";
-    else instructions.textContent = "Waiting for the round to begin...";
+    protectBtn.classList.toggle("hidden", !myTurn || locked);
+    Object.values(cellEls).forEach(c => c.classList.toggle("protectable", myTurn && !locked));
+    if (!myTurn) instructions.textContent = "Waiting for Households to move their harvesters...";
+    else if (locked) instructions.textContent = "Waiting for Households to take their turn...";
+    else instructions.textContent = "Click up to " + MAX_PROTECTED_ZONES + " cells to protect, then send.";
   } else {
     sendBtn.classList.add("hidden");
     trayEl.classList.add("hidden");
@@ -129,6 +141,7 @@ function lockHarvesters() {
   protectBtn.disabled = true;
   trayTokens.forEach(t => { t.draggable = false; t.classList.add("locked"); });
   document.querySelectorAll(".harvester-dot").forEach(d => d.classList.add("locked"));
+  updateActionVisibility();
 }
 
 const trayTokens = [];
@@ -299,16 +312,14 @@ function connect(name) {
         addLog("GAME STARTED, role = " + m.payload.role);
         showGame();
         updateActionVisibility();
-      } else if (m.type === "phase") {
+      } else if (m.type === "round") {
         currentRound = m.round;
-        currentPhase = m.phase;
-        if (currentPhase === 1) resetRoundSelections();
+        resetRoundSelections();
         locked = false;
         sendBtn.disabled = false;
         protectBtn.disabled = false;
         trayTokens.forEach(t => { t.draggable = true; t.classList.remove("locked"); });
         document.querySelectorAll(".harvester-dot").forEach(d => d.classList.remove("locked"));
-        updateActionVisibility();
         startCountdown();
       } else if (m.type === "biomass") {
         applyBiomass(m.values);
@@ -346,7 +357,7 @@ byId("login").addEventListener("submit", (e) => {
 });
 
 sendBtn.addEventListener("click", () => {
-  if (!canMoveHarvesters()) { show("error", "You can only move harvesters during your phase"); return; }
+  if (!canMoveHarvesters()) { show("error", "You can only move harvesters during the Household turn"); return; }
   if (!ws || ws.readyState !== WebSocket.OPEN) { show("error", "Not connected"); return; }
   const payload = { type: "move", harvesterCells: harvesterPlacement.slice() };
   ws.send(JSON.stringify(payload));
@@ -355,7 +366,7 @@ sendBtn.addEventListener("click", () => {
 });
 
 protectBtn.addEventListener("click", () => {
-  if (!canProtectZones()) { show("error", "You can only protect zones during your phase"); return; }
+  if (!canProtectZones()) { show("error", "You can only protect zones during the Ranger turn"); return; }
   if (!ws || ws.readyState !== WebSocket.OPEN) { show("error", "Not connected"); return; }
   const payload = { type: "protect", cells: Array.from(protectedZones) };
   ws.send(JSON.stringify(payload));

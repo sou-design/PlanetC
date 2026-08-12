@@ -10,8 +10,10 @@ initialize
 		type = 'move' ifTrue: [
 			self cormasModel
 				recordMove: (dict at: 'harvesterCells')
-				forClientNamed: client name ].
+				forClientNamed: client name.
+			self refreshCormasUI ].
 		type = 'protect' ifTrue: [
 			self cormasModel
 				recordProtect: (dict at: 'cells')
-				forClientNamed: client name ] ]
+				forClientNamed: client name.
+			self refreshCormasUI ] ]

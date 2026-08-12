@@ -3,16 +3,27 @@ startRoundTimer
 	roundProcess ifNotNil: [ roundProcess terminate ].
 	roundProcess := [
 		[ [ self cormasModel currentRound <= self cormasModel maxRounds ] whileTrue: [
-			| waited maxWait |
+			| waited |
+			self cormasModel beginRound.
+			self broadcastRound.
+			self broadcastBiomass.
+			self broadcastBirds.
+			self refreshCormasUI.
+
+			(Delay forSeconds: 10) wait.
+
 			waited := 0.
-			self cormasModel currentPhase = 1
-				ifTrue: [ (Delay forSeconds: 10) wait ]
-				ifFalse: [
-					maxWait := self cormasModel currentPhase = 2
-						ifTrue: [ 10000 ]
-						ifFalse: [ 120000 ].
-					[ waited < maxWait and: [ self allRequiredActionsSubmitted not ] ] whileTrue: [
-						(Delay forMilliseconds: 500) wait.
-						waited := waited + 500 ] ].
-			self runStep ] ]
-			on: Error do: [ :e | Transcript showCr: 'Round timer crashed: ', e messageText ] ] fork
+			[ waited < 120000 and: [ self allRequiredActionsSubmitted not ] ] whileTrue: [
+				(Delay forMilliseconds: 500) wait.
+				waited := waited + 500 ].
+
+			self cormasModel resolveRound.
+			self incrementCurrentTimeStep.
+			self cormasModel removeDestroyedEntities.
+			self recordData.
+			self broadcastBiomass.
+			self broadcastBirds.
+			self refreshCormasUI.
+
+			(Delay forSeconds: 10) wait ] ]
+		on: Error do: [ :e | Transcript showCr: 'Round timer crashed: ', e messageText ] ] fork
