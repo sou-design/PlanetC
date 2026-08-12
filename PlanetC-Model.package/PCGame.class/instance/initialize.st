@@ -2,15 +2,16 @@ initialization
 initialize
 	super initialize.
 	server := PCGameServer new.
-	server whenDataReceivedDo: [ :data :client |
+	server whenDataReceivedDo: [ :dict :client |
 		| type |
-		type := data at: 'type' ifAbsent: [ nil ].
+		type := dict at: 'type'.
+		
 		type = 'requestGridState' ifTrue: [ self broadcastBiomass ].
 		type = 'move' ifTrue: [
 			self cormasModel
-				recordMove: (data at: 'harvesterCells' ifAbsent: [ nil ])
+				recordMove: (dict at: 'harvesterCells')
 				forClientNamed: client name ].
 		type = 'protect' ifTrue: [
 			self cormasModel
-				recordProtect: (data at: 'cells' ifAbsent: [ nil ])
+				recordProtect: (dict at: 'cells')
 				forClientNamed: client name ] ]

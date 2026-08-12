@@ -1,5 +1,6 @@
 as yet unclassified
 linkClientNamed: aName toEntityIn: aCollection
+
 	^ aCollection
 		detect: [ :e | e name = aName ]
 		ifNone: [

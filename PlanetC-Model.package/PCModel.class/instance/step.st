@@ -11,11 +11,10 @@ step
 		self households do: [ :h | h leaveHarvesters ] ].
 	currentPhase = 2 ifTrue: [
 		self cells do: [ :cell | cell isProtected: false ].
-		submittedProtection isEmpty
-			ifFalse: [
-				submittedProtection do: [ :cellId | (self cells at: cellId) isProtected: true ].
-				submittedProtection := #() ]
-			ifTrue: [ self rangers do: [ :ranger | ranger protectCells ] ] ].
+		submittedProtection
+			ifNotEmpty: [
+				submittedProtection do: [ :cellId | (self cells at: cellId) isProtected: true ] ]
+			ifEmpty: [ self rangers do: [ :ranger | ranger protectCells ] ] ].
 	currentPhase = 3 ifTrue: [
 		self households do: [ :h | h resetHarvest ].
 self households do: [ :h |
