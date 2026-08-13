@@ -3,7 +3,8 @@ runStep
 	super runStep.
 	self broadcastBiomass.
 	self broadcastBirds.
-	self broadcastRound.
+	self broadcastProtection.
+	self broadcastHarvesters.
 	self refreshCormasUI
 	
 

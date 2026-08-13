@@ -245,6 +245,46 @@ function applyBiomass(values) {
   });
 }
 
+function applyProtection(values) {
+  values.forEach((isProtected, i) => {
+    const id = i + 1;
+    const cell = cellEls[id];
+    if (!cell) return;
+
+    let badge = cell.querySelector(".protection-badge");
+    if (isProtected) {
+      cell.classList.add("protected-shared");
+      if (!badge) {
+        badge = document.createElement("div");
+        badge.className = "protection-badge";
+        badge.textContent = "\u{1F6E1}";
+        cell.appendChild(badge);
+      }
+    } else {
+      cell.classList.remove("protected-shared");
+      if (badge) badge.remove();
+    }
+  });
+}
+
+function applyHarvesters(values) {
+  values.forEach((count, i) => {
+    const id = i + 1;
+    const cell = cellEls[id];
+    if (!cell) return;
+
+    let badge = cell.querySelector(".harvester-count-badge");
+    if (count > 0) {
+      if (!badge) {
+        badge = document.createElement("div");
+        badge.className = "harvester-count-badge";
+        cell.appendChild(badge);
+      }
+      badge.textContent = count;
+    } else if (badge) badge.remove();
+  });
+}
+
 function applyBirds(values) {
   values.forEach((entry, i) => {
     const id = i + 1;
@@ -325,6 +365,10 @@ function connect(name) {
         applyBiomass(m.values);
       } else if (m.type === "birds") {
         applyBirds(m.values);
+      } else if (m.type === "protection") {
+        applyProtection(m.values);
+      } else if (m.type === "harvesters") {
+        applyHarvesters(m.values);
       } else if (m.type === "rejected" && reasonOf(m) === "name-taken") {
         show("error", "This name is already taken. Choose another.");
         ws.close();

@@ -15,8 +15,9 @@ button:disabled { opacity: .5; cursor: not-allowed }
 }
 .cell.dragover { outline: 3px dashed #333; outline-offset: -3px }
 .cell.protect-selected { outline: 3px solid #b00020; outline-offset: -3px }
+.cell.protected-shared { outline: 3px solid #457b9d; outline-offset: -3px }
 .cell.protectable { cursor: pointer }
-.bird-badge, .newborn-badge {
+.bird-badge, .newborn-badge, .harvester-count-badge, .protection-badge {
   position: absolute;
   width: 16px; height: 16px; border-radius: 50%;
   font-size: 9px; color: #fff; font-weight: bold;
@@ -24,6 +25,8 @@ button:disabled { opacity: .5; cursor: not-allowed }
 }
 .bird-badge { top: 2px; right: 2px; background: #333; }
 .newborn-badge { top: 2px; left: 2px; background: #f4a261; }
+.harvester-count-badge { bottom: 2px; right: 2px; background: #1d3557; }
+.protection-badge { bottom: 2px; left: 2px; background: #457b9d; font-size: 11px; }
 .harvester-tray {
   display: flex; gap: 10px; margin: .75rem 0;
   min-height: 40px; align-items: center;

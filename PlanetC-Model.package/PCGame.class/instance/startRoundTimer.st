@@ -8,6 +8,8 @@ startRoundTimer
 			self broadcastRound.
 			self broadcastBiomass.
 			self broadcastBirds.
+			self broadcastProtection.
+			self broadcastHarvesters.
 			self refreshCormasUI.
 
 			(Delay forSeconds: 10) wait.
@@ -23,6 +25,8 @@ startRoundTimer
 			self recordData.
 			self broadcastBiomass.
 			self broadcastBirds.
+			self broadcastProtection.
+			self broadcastHarvesters.
 			self refreshCormasUI.
 
 			(Delay forSeconds: 10) wait ] ]
