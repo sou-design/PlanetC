@@ -26,10 +26,11 @@ const sendBtn = byId("sendBtn");
 const protectBtn = byId("protectBtn");
 const statusLine = byId("statusLine");
 const countdownLine = byId("countdownLine");
+
 const COLUMNS = 5;
 const ROWS = 4;
 const TOTAL_CELLS = COLUMNS * ROWS;
-const HARVESTER_COLORS = ["#e63946", "#1d3557", "#2a9d8f", "#f4a261"];
+const HOUSEHOLD_PALETTE = ["#1D9E75", "#D85A30", "#534AB7", "#378ADD", "#EF9F27", "#D4537E", "#639922", "#993C1D"];
 const MAX_PROTECTED_ZONES = 3;
 const RANGER_WINDOW_MS = 10000;
 const HOUSEHOLD_WINDOW_MS = 120000;
@@ -43,8 +44,30 @@ let countdownInterval = null;
 let roundStartTime = null;
 const harvesterPlacement = [null, null, null, null];
 const protectedZones = new Set();
+const householdColorCache = new Map();
 
 nameInput.value = localStorage.getItem("cm.name") || "";
+
+function colorForHousehold(name) {
+  if (householdColorCache.has(name)) return householdColorCache.get(name);
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  }
+  const color = HOUSEHOLD_PALETTE[hash % HOUSEHOLD_PALETTE.length];
+  householdColorCache.set(name, color);
+  return color;
+}
+
+function myColor() {
+  return colorForHousehold(myName || "");
+}
+
+function updateTrayColors() {
+  const color = myColor();
+  trayTokens.forEach(t => t.style.background = color);
+  document.querySelectorAll(".harvester-dot").forEach(d => d.style.background = color);
+}
 
 function show(kind, text) {
   msg.className = kind;
@@ -106,7 +129,7 @@ function updateCountdownDisplay() {
 
 function updateActionVisibility() {
   statusLine.textContent = currentRound != null
-    ? "Round " + currentRound + (rangerWindowOpen() ? " - Ranger\u0027s turn" : " - Household\u0027s turn")
+    ? "Round " + currentRound + (rangerWindowOpen() ? " - Ranger''s turn" : " - Household''s turn")
     : "";
 
   if (myRole === "Household") {
@@ -115,18 +138,22 @@ function updateActionVisibility() {
     sendBtn.classList.toggle("hidden", !myTurn || locked);
     protectBtn.classList.add("hidden");
     Object.values(cellEls).forEach(c => c.classList.remove("protectable"));
+
     if (!myTurn) instructions.textContent = "Waiting for the Ranger to protect zones...";
     else if (locked) instructions.textContent = "Waiting for the round to resolve...";
     else instructions.textContent = "Drag your harvesters onto the grid, then send.";
+
   } else if (myRole === "Ranger") {
     const myTurn = rangerWindowOpen();
     sendBtn.classList.add("hidden");
     trayEl.classList.add("hidden");
     protectBtn.classList.toggle("hidden", !myTurn || locked);
     Object.values(cellEls).forEach(c => c.classList.toggle("protectable", myTurn && !locked));
+
     if (!myTurn) instructions.textContent = "Waiting for Households to move their harvesters...";
     else if (locked) instructions.textContent = "Waiting for Households to take their turn...";
     else instructions.textContent = "Click up to " + MAX_PROTECTED_ZONES + " cells to protect, then send.";
+
   } else {
     sendBtn.classList.add("hidden");
     trayEl.classList.add("hidden");
@@ -148,7 +175,7 @@ const trayTokens = [];
 for (let h = 0; h < 4; h++) {
   const token = document.createElement("div");
   token.className = "harvester-token";
-  token.style.background = HARVESTER_COLORS[h];
+  token.style.background = "#999999";
   token.textContent = "H" + (h + 1);
   token.draggable = true;
   token.dataset.harvester = h;
@@ -162,13 +189,11 @@ for (let h = 0; h < 4; h++) {
 
 const BIOMASS_COLORS = ["#f6f6f6", "#c8e6c9", "#81c784", "#388e3c"];
 const cellEls = {};
-
 for (let id = 1; id <= TOTAL_CELLS; id++) {
   const cell = document.createElement("div");
   cell.className = "cell";
   cell.dataset.id = id;
   cell.style.background = BIOMASS_COLORS[0];
-
   cell.addEventListener("click", () => {
     if (!canProtectZones()) return;
     if (protectedZones.has(id)) {
@@ -183,7 +208,6 @@ for (let id = 1; id <= TOTAL_CELLS; id++) {
       cell.classList.add("protect-selected");
     }
   });
-
   cell.addEventListener("dragover", (e) => {
     if (!canMoveHarvesters()) return;
     e.preventDefault();
@@ -197,7 +221,6 @@ for (let id = 1; id <= TOTAL_CELLS; id++) {
     const h = Number(e.dataTransfer.getData("text/plain"));
     placeHarvester(h, id);
   });
-
   gridEl.appendChild(cell);
   cellEls[id] = cell;
 }
@@ -206,10 +229,9 @@ function placeHarvester(h, cellId) {
   removeHarvesterVisual(h);
   harvesterPlacement[h] = cellId;
   trayTokens[h].classList.add("placed");
-
   const dot = document.createElement("div");
   dot.className = "harvester-dot";
-  dot.style.background = HARVESTER_COLORS[h];
+  dot.style.background = myColor();
   dot.textContent = "H" + (h + 1);
   dot.dataset.harvester = h;
   dot.draggable = true;
@@ -250,7 +272,6 @@ function applyProtection(values) {
     const id = i + 1;
     const cell = cellEls[id];
     if (!cell) return;
-
     let badge = cell.querySelector(".protection-badge");
     if (isProtected) {
       cell.classList.add("protected-shared");
@@ -267,21 +288,40 @@ function applyProtection(values) {
   });
 }
 
+// Expects values[i] = array of { household: "<name>", count: <number> }
+// for cell i+1. Renders one chip per household: colored swatch + exact count.
+// Colors are derived deterministically from household name, matching the
+// tray/drag colors used during placement, so no server-sent colors needed.
 function applyHarvesters(values) {
-  values.forEach((count, i) => {
+  values.forEach((entries, i) => {
     const id = i + 1;
     const cell = cellEls[id];
     if (!cell) return;
-
-    let badge = cell.querySelector(".harvester-count-badge");
-    if (count > 0) {
-      if (!badge) {
-        badge = document.createElement("div");
-        badge.className = "harvester-count-badge";
-        cell.appendChild(badge);
+    let container = cell.querySelector(".harvester-chips");
+    if (entries && entries.length > 0) {
+      if (!container) {
+        container = document.createElement("div");
+        container.className = "harvester-chips";
+        cell.appendChild(container);
       }
-      badge.textContent = count;
-    } else if (badge) badge.remove();
+      container.innerHTML = "";
+      entries.forEach(entry => {
+        const chip = document.createElement("div");
+        chip.className = "harvester-chip";
+        const swatch = document.createElement("span");
+        swatch.className = "harvester-chip-swatch";
+        swatch.style.background = colorForHousehold(entry.household);
+        const countText = document.createElement("span");
+        countText.className = "harvester-chip-count";
+        countText.textContent = entry.count;
+        chip.appendChild(swatch);
+        chip.appendChild(countText);
+        chip.title = entry.household + ": " + entry.count;
+        container.appendChild(chip);
+      });
+    } else if (container) {
+      container.remove();
+    }
   });
 }
 
@@ -290,7 +330,6 @@ function applyBirds(values) {
     const id = i + 1;
     const cell = cellEls[id];
     if (!cell) return;
-
     let adultBadge = cell.querySelector(".bird-badge");
     if (entry.adults > 0) {
       if (!adultBadge) {
@@ -300,7 +339,6 @@ function applyBirds(values) {
       }
       adultBadge.textContent = entry.adults;
     } else if (adultBadge) adultBadge.remove();
-
     let newbornBadge = cell.querySelector(".newborn-badge");
     if (entry.newborns > 0) {
       if (!newbornBadge) {
@@ -324,12 +362,11 @@ function reasonOf(m) {
 }
 
 let ws = null;
-
 function connect(name) {
   myName = name;
+  updateTrayColors();
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${proto}://${location.host}/ws`);
-
   ws.addEventListener("open", () => {
     reconnectAttempts = 0;
     ws.send(JSON.stringify({ type: "bonjour", name: name }));
@@ -338,12 +375,13 @@ function connect(name) {
       else clearInterval(heartbeat);
     }, 5000);
   });
-
   ws.addEventListener("message", (ev) => {
     try {
       const m = parseServerMessage(ev.data);
       if (m.type === "registered") {
         localStorage.setItem("cm.name", m.payload.name);
+        myName = m.payload.name;
+        updateTrayColors();
         show("ok", `Welcome, ${m.payload.name}! Waiting for the game to start...`);
         addLog("REGISTERED as " + m.payload.name);
       } else if (m.type === "gameStarted") {
@@ -381,7 +419,6 @@ function connect(name) {
       addLog("<< " + ev.data);
     }
   });
-
   ws.addEventListener("close", (e) => {
     addLog("DISCONNECTED code=" + e.code + " reason=" + e.reason);
     if (myName) {
@@ -389,7 +426,6 @@ function connect(name) {
       setTimeout(() => connect(myName), Math.min(2000 * reconnectAttempts, 10000));
     }
   });
-
   ws.addEventListener("error", () => show("error", "Connection error"));
 }
 
@@ -416,4 +452,5 @@ protectBtn.addEventListener("click", () => {
   ws.send(JSON.stringify(payload));
   addLog(">> " + JSON.stringify(payload));
   lockHarvesters();
-});'
+});
+'

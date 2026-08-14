@@ -54,4 +54,51 @@ button:disabled { opacity: .5; cursor: not-allowed }
 .ok { color: #006400; margin-top: .75rem }
 .status { font-size: .85rem; color: #555; margin-top: .5rem }
 #sendBtn, #protectBtn { width: 100%; padding: .8rem; font-size: 1rem; margin-top: .5rem }
-pre { background: #f6f6f6; padding: .75rem; overflow: auto; max-height: 160px }'
+pre { background: #f6f6f6; padding: .75rem; overflow: auto; max-height: 160px }
+.harvester-shapes {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  right: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.harvester-shape {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #555;
+}
+.harvester-chips {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.harvester-chip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255,255,255,0.85);
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.harvester-chip-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+
+'
