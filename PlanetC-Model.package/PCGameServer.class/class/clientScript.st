@@ -166,8 +166,8 @@ function lockHarvesters() {
   locked = true;
   sendBtn.disabled = true;
   protectBtn.disabled = true;
+  document.querySelectorAll(".harvester-dot").forEach(d => d.remove());
   trayTokens.forEach(t => { t.draggable = false; t.classList.add("locked"); });
-  document.querySelectorAll(".harvester-dot").forEach(d => d.classList.add("locked"));
   updateActionVisibility();
 }
 
@@ -179,21 +179,25 @@ for (let h = 0; h < 4; h++) {
   token.textContent = "H" + (h + 1);
   token.draggable = true;
   token.dataset.harvester = h;
+
   token.addEventListener("dragstart", (e) => {
     if (!canMoveHarvesters()) { e.preventDefault(); return; }
     e.dataTransfer.setData("text/plain", String(h));
   });
+
   trayEl.appendChild(token);
   trayTokens.push(token);
 }
 
 const BIOMASS_COLORS = ["#f6f6f6", "#c8e6c9", "#81c784", "#388e3c"];
 const cellEls = {};
+
 for (let id = 1; id <= TOTAL_CELLS; id++) {
   const cell = document.createElement("div");
   cell.className = "cell";
   cell.dataset.id = id;
   cell.style.background = BIOMASS_COLORS[0];
+
   cell.addEventListener("click", () => {
     if (!canProtectZones()) return;
     if (protectedZones.has(id)) {
@@ -208,12 +212,15 @@ for (let id = 1; id <= TOTAL_CELLS; id++) {
       cell.classList.add("protect-selected");
     }
   });
+
   cell.addEventListener("dragover", (e) => {
     if (!canMoveHarvesters()) return;
     e.preventDefault();
     cell.classList.add("dragover");
   });
+
   cell.addEventListener("dragleave", () => cell.classList.remove("dragover"));
+
   cell.addEventListener("drop", (e) => {
     e.preventDefault();
     cell.classList.remove("dragover");
@@ -221,6 +228,7 @@ for (let id = 1; id <= TOTAL_CELLS; id++) {
     const h = Number(e.dataTransfer.getData("text/plain"));
     placeHarvester(h, id);
   });
+
   gridEl.appendChild(cell);
   cellEls[id] = cell;
 }
@@ -229,16 +237,19 @@ function placeHarvester(h, cellId) {
   removeHarvesterVisual(h);
   harvesterPlacement[h] = cellId;
   trayTokens[h].classList.add("placed");
+
   const dot = document.createElement("div");
   dot.className = "harvester-dot";
   dot.style.background = myColor();
   dot.textContent = "H" + (h + 1);
   dot.dataset.harvester = h;
   dot.draggable = true;
+
   dot.addEventListener("dragstart", (e) => {
     if (!canMoveHarvesters()) { e.preventDefault(); return; }
     e.dataTransfer.setData("text/plain", String(h));
   });
+
   dot.addEventListener("click", (e) => {
     e.stopPropagation();
     if (!canMoveHarvesters()) return;
@@ -246,6 +257,7 @@ function placeHarvester(h, cellId) {
     harvesterPlacement[h] = null;
     trayTokens[h].classList.remove("placed");
   });
+
   cellEls[cellId].appendChild(dot);
 }
 
@@ -272,31 +284,16 @@ function applyProtection(values) {
     const id = i + 1;
     const cell = cellEls[id];
     if (!cell) return;
-    let badge = cell.querySelector(".protection-badge");
-    if (isProtected) {
-      cell.classList.add("protected-shared");
-      if (!badge) {
-        badge = document.createElement("div");
-        badge.className = "protection-badge";
-        badge.textContent = "\u{1F6E1}";
-        cell.appendChild(badge);
-      }
-    } else {
-      cell.classList.remove("protected-shared");
-      if (badge) badge.remove();
-    }
+    cell.classList.toggle("protected-shared", isProtected);
   });
 }
 
-// Expects values[i] = array of { household: "<name>", count: <number> }
-// for cell i+1. Renders one chip per household: colored swatch + exact count.
-// Colors are derived deterministically from household name, matching the
-// tray/drag colors used during placement, so no server-sent colors needed.
 function applyHarvesters(values) {
   values.forEach((entries, i) => {
     const id = i + 1;
     const cell = cellEls[id];
     if (!cell) return;
+
     let container = cell.querySelector(".harvester-chips");
     if (entries && entries.length > 0) {
       if (!container) {
@@ -330,24 +327,29 @@ function applyBirds(values) {
     const id = i + 1;
     const cell = cellEls[id];
     if (!cell) return;
-    let adultBadge = cell.querySelector(".bird-badge");
+
+    let adultIcon = cell.querySelector(".bird-icon-plain");
     if (entry.adults > 0) {
-      if (!adultBadge) {
-        adultBadge = document.createElement("div");
-        adultBadge.className = "bird-badge";
-        cell.appendChild(adultBadge);
+      if (!adultIcon) {
+        adultIcon = document.createElement("span");
+        adultIcon.className = "bird-icon-plain icon-bird";
+        cell.appendChild(adultIcon);
       }
-      adultBadge.textContent = entry.adults;
-    } else if (adultBadge) adultBadge.remove();
-    let newbornBadge = cell.querySelector(".newborn-badge");
+    } else if (adultIcon) {
+      adultIcon.remove();
+    }
+
+    let newbornChip = cell.querySelector(".newborn-chip");
     if (entry.newborns > 0) {
-      if (!newbornBadge) {
-        newbornBadge = document.createElement("div");
-        newbornBadge.className = "newborn-badge";
-        cell.appendChild(newbornBadge);
+      if (!newbornChip) {
+        newbornChip = document.createElement("div");
+        newbornChip.className = "newborn-chip";
+        cell.appendChild(newbornChip);
       }
-      newbornBadge.textContent = entry.newborns;
-    } else if (newbornBadge) newbornBadge.remove();
+      newbornChip.innerHTML = "<span class=\"bird-chip-icon icon-poussin\"></span><span>" + entry.newborns + "</span>";
+    } else if (newbornChip) {
+      newbornChip.remove();
+    }
   });
 }
 
@@ -362,34 +364,41 @@ function reasonOf(m) {
 }
 
 let ws = null;
+
 function connect(name) {
   myName = name;
   updateTrayColors();
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${proto}://${location.host}/ws`);
+
   ws.addEventListener("open", () => {
     reconnectAttempts = 0;
     ws.send(JSON.stringify({ type: "bonjour", name: name }));
+
     const heartbeat = setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "ping" }));
       else clearInterval(heartbeat);
     }, 5000);
   });
+
   ws.addEventListener("message", (ev) => {
     try {
       const m = parseServerMessage(ev.data);
+
       if (m.type === "registered") {
         localStorage.setItem("cm.name", m.payload.name);
         myName = m.payload.name;
         updateTrayColors();
         show("ok", `Welcome, ${m.payload.name}! Waiting for the game to start...`);
         addLog("REGISTERED as " + m.payload.name);
+
       } else if (m.type === "gameStarted") {
         myRole = m.payload.role;
         show("ok", `Game started! Your role: ${m.payload.role}`);
         addLog("GAME STARTED, role = " + m.payload.role);
         showGame();
         updateActionVisibility();
+
       } else if (m.type === "round") {
         currentRound = m.round;
         resetRoundSelections();
@@ -399,19 +408,26 @@ function connect(name) {
         trayTokens.forEach(t => { t.draggable = true; t.classList.remove("locked"); });
         document.querySelectorAll(".harvester-dot").forEach(d => d.classList.remove("locked"));
         startCountdown();
+
       } else if (m.type === "biomass") {
         applyBiomass(m.values);
+
       } else if (m.type === "birds") {
         applyBirds(m.values);
+
       } else if (m.type === "protection") {
         applyProtection(m.values);
+
       } else if (m.type === "harvesters") {
         applyHarvesters(m.values);
+
       } else if (m.type === "rejected" && reasonOf(m) === "name-taken") {
         show("error", "This name is already taken. Choose another.");
         ws.close();
+
       } else if (m.type === "error") {
         show("error", "Error: " + reasonOf(m));
+
       } else {
         addLog("<< " + ev.data);
       }
@@ -419,6 +435,7 @@ function connect(name) {
       addLog("<< " + ev.data);
     }
   });
+
   ws.addEventListener("close", (e) => {
     addLog("DISCONNECTED code=" + e.code + " reason=" + e.reason);
     if (myName) {
@@ -426,19 +443,29 @@ function connect(name) {
       setTimeout(() => connect(myName), Math.min(2000 * reconnectAttempts, 10000));
     }
   });
+
   ws.addEventListener("error", () => show("error", "Connection error"));
 }
 
 byId("login").addEventListener("submit", (e) => {
   e.preventDefault();
   const name = nameInput.value.trim();
-  if (!name) { show("error", "Please enter a name"); return; }
+  if (!name) {
+    show("error", "Please enter a name");
+    return;
+  }
   connect(name);
 });
 
 sendBtn.addEventListener("click", () => {
-  if (!canMoveHarvesters()) { show("error", "You can only move harvesters during the Household turn"); return; }
-  if (!ws || ws.readyState !== WebSocket.OPEN) { show("error", "Not connected"); return; }
+  if (!canMoveHarvesters()) {
+    show("error", "You can only move harvesters during the Household turn");
+    return;
+  }
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    show("error", "Not connected");
+    return;
+  }
   const payload = { type: "move", harvesterCells: harvesterPlacement.slice() };
   ws.send(JSON.stringify(payload));
   addLog(">> " + JSON.stringify(payload));
@@ -446,8 +473,14 @@ sendBtn.addEventListener("click", () => {
 });
 
 protectBtn.addEventListener("click", () => {
-  if (!canProtectZones()) { show("error", "You can only protect zones during the Ranger turn"); return; }
-  if (!ws || ws.readyState !== WebSocket.OPEN) { show("error", "Not connected"); return; }
+  if (!canProtectZones()) {
+    show("error", "You can only protect zones during the Ranger turn");
+    return;
+  }
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    show("error", "Not connected");
+    return;
+  }
   const payload = { type: "protect", cells: Array.from(protectedZones) };
   ws.send(JSON.stringify(payload));
   addLog(">> " + JSON.stringify(payload));
