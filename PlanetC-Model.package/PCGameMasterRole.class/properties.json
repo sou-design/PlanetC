@@ -1,16 +1,11 @@
 {
 	"commentStamp" : "",
-	"super" : "CMModel",
+	"super" : "CMGameRole",
 	"category" : "PlanetC-Model",
 	"classinstvars" : [ ],
 	"pools" : [ ],
 	"classvars" : [ ],
-	"instvars" : [
-		"nbFamilies",
-		"currentRound",
-		"maxRounds",
-		"submittedMoves"
-	],
-	"name" : "PCModel",
+	"instvars" : [ ],
+	"name" : "PCGameMasterRole",
 	"type" : "normal"
 }

@@ -1,6 +1,5 @@
 as yet unclassified
 startRoundTimer
-	roundProcess ifNotNil: [ roundProcess terminate ].
 	roundProcess := [
 		[ [ self cormasModel currentRound <= self cormasModel maxRounds ] whileTrue: [
 			| waited |

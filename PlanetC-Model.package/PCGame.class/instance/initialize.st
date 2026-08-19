@@ -8,14 +8,10 @@ initialize
 		
 		type = 'requestGridState' ifTrue: [ self broadcastBiomass ].
 		type = 'move' ifTrue: [
-			self cormasModel
-				recordMove: (dict at: 'harvesterCells')
-				forClientNamed: client name.
-				self refreshCormasUI .
-			self broadcastHarvesters ].
+		self cormasModel recordMove: (dict at: 'harvesterCells') for: (self agentFor: client).
+		self refreshCormasUI.
+		self broadcastHarvesters ].
 		type = 'protect' ifTrue: [
-			self cormasModel
-				recordProtect: (dict at: 'cells')
-				forClientNamed: client name.
-				self refreshCormasUI .
-			self broadcastProtection ] ]
+		self cormasModel recordProtect: (dict at: 'cells').
+		self refreshCormasUI.
+		self broadcastProtection ] ]

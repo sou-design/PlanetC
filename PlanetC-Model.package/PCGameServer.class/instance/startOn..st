@@ -12,6 +12,9 @@ startOn: aPortNumber
 		response entity: (ZnEntity with: self class stylesheet type: (ZnMimeType fromString: 'text/css')) ].
 	dispatcher map: '/app.js' to: [ :request :response |
 		response entity: (ZnEntity with: self class clientScript type: (ZnMimeType fromString: 'application/javascript')) ].
+	dispatcher map: '/gm' to: [ :request :response | response entity: (ZnEntity html: self class gmPageHtml) ].
+dispatcher map: '/gm.js' to: [ :request :response |
+	response entity: (ZnEntity with: self class gmScript type: (ZnMimeType fromString: 'application/javascript')) ].
 	dispatcher map: '/icons/bird.png' to: [ :request :response |
 		response entity: (ZnEntity with: PCTiles birdIconData base64Decoded type: (ZnMimeType fromString: 'image/png')) ].
 	dispatcher map: '/icons/poussin.png' to: [ :request :response |
