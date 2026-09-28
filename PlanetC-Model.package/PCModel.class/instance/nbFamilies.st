@@ -1,4 +1,4 @@
-as yet unclassified
+accessing
 nbFamilies 
 	<parameterIntegerDefault: 5>
 	^ nbFamilies

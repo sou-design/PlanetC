@@ -13,8 +13,6 @@ loginPageHtml
   <button type="submit">Join</button>
 </form>
 <div id="msg"></div>
-<pre id="log" hidden></pre>
 
-<script src="https://cdn.jsdelivr.net/npm/drag-drop-touch@1.3.1/dist/drag-drop-touch.esm.min.js"></script>
 <script src="/app.js"></script>
 </html>'

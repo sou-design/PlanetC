@@ -1,4 +1,4 @@
-as yet unclassified
+broadcast
 broadcastProtection
 	server broadcast: (Dictionary new
 		at: 'type' put: 'protection';

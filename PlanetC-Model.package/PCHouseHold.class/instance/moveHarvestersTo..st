@@ -1,4 +1,4 @@
-as yet unclassified
+moving
 moveHarvestersTo: cellsArray
 	| count |
 	count := cellsArray size min: children size.

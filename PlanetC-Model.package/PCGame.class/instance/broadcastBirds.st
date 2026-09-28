@@ -1,10 +1,13 @@
-initialization
+broadcast
 broadcastBirds
-	server broadcast: (Dictionary new
+	| message |
+	message := Dictionary new
 		at: 'type' put: 'birds';
 		at: 'values' put: (self cormasModel cells collect: [ :c |
 			Dictionary new
 				at: 'adults' put: ((c occupantsOfClass: PCBird) count: [ :b | b state = #adult ]);
 				at: 'newborns' put: ((c occupantsOfClass: PCBird) count: [ :b | b state = #newborn ]);
 				yourself ]) asArray;
-		yourself)
+		yourself.
+	(server clients reject: [ :client | client role = PCHouseHoldRole ])
+		do: [ :client | client sendMessage: message ]

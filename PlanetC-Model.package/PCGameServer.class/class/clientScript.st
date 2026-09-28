@@ -1,23 +1,37 @@
 as yet unclassified
 clientScript
-	^ 'const gameEl = document.createElement("div");
+	^ '/* Player page. Each round has two turns started by the game master: the Ranger (park manager)
+   protects zones, then the Households move their harvesters. Round 1 has only the households turn.
+   The server sends: round (a round begins), turn (a turn starts, with its time in seconds),
+   turnEnded, roundEnded, roundResult (my own family gain) and gameOver. */
+const gameEl = document.createElement("div");
 gameEl.id = "game";
 gameEl.className = "hidden";
 gameEl.innerHTML = `
   <p id="instructions">Waiting for the round to begin...</p>
   <div class="harvester-tray hidden" id="tray"></div>
   <div class="grid" id="grid"></div>
+  <div class="picker-backdrop hidden" id="pickerBackdrop">
+    <div class="picker" id="picker" role="dialog" aria-modal="true">
+      <p class="picker-title" id="pickerTitle"></p>
+      <div class="picker-list" id="pickerList"></div>
+      <button type="button" id="pickerDone">Done</button>
+    </div>
+  </div>
   <button id="sendBtn" class="hidden">Move harvesters</button>
   <button id="protectBtn" class="hidden">Protect zones</button>
   <p class="status" id="statusLine"></p>
   <p class="status" id="countdownLine"></p>
+  <div id="resultCard" class="hidden" style="margin:1rem 0;padding:.8rem 1rem;border-radius:8px;background:#eef7ef;border:1px solid #b7dcbc;color:#1d4d27">
+    <p id="resultGain" style="margin:0 0 .25rem;font-size:1.15rem;font-weight:600"></p>
+    <p id="resultTotal" style="margin:0"></p>
+  </div>
 `;
 document.body.appendChild(gameEl);
 
 const byId = id => document.getElementById(id);
 const nameInput = byId("name");
 const msg = byId("msg");
-const log = byId("log");
 const loginEl = byId("login");
 const gridEl = byId("grid");
 const trayEl = byId("tray");
@@ -26,22 +40,30 @@ const sendBtn = byId("sendBtn");
 const protectBtn = byId("protectBtn");
 const statusLine = byId("statusLine");
 const countdownLine = byId("countdownLine");
+const pickerBackdrop = byId("pickerBackdrop");
+const pickerTitle = byId("pickerTitle");
+const pickerList = byId("pickerList");
+const pickerDone = byId("pickerDone");
+const resultCard = byId("resultCard");
+const resultGain = byId("resultGain");
+const resultTotal = byId("resultTotal");
+let pickerCellId = null;
 
 const COLUMNS = 5;
 const ROWS = 4;
 const TOTAL_CELLS = COLUMNS * ROWS;
 const HOUSEHOLD_PALETTE = ["#1D9E75", "#D85A30", "#534AB7", "#378ADD", "#EF9F27", "#D4537E", "#639922", "#993C1D"];
 const MAX_PROTECTED_ZONES = 3;
-const RANGER_WINDOW_MS = 10000;
-const HOUSEHOLD_WINDOW_MS = 120000;
 
 let myRole = null;
 let locked = false;
 let currentRound = null;
+let currentTurn = null;   /* "ranger", "households", or null between turns */
+let turnEndsAt = null;    /* time (ms) when the current turn ends */
 let reconnectAttempts = 0;
 let myName = null;
 let countdownInterval = null;
-let roundStartTime = null;
+let myTotal = null;       /* my family total harvest, from the last roundResult */
 const harvesterPlacement = [null, null, null, null];
 const protectedZones = new Set();
 const householdColorCache = new Map();
@@ -75,9 +97,7 @@ function show(kind, text) {
 }
 
 function addLog(x) {
-  log.hidden = false;
-  log.textContent += x + "\n";
-  log.scrollTop = log.scrollHeight;
+  console.log(x);
 }
 
 function showGame() {
@@ -85,16 +105,12 @@ function showGame() {
   gameEl.classList.remove("hidden");
 }
 
-function rangerWindowOpen() {
-  return roundStartTime != null && (Date.now() - roundStartTime) < RANGER_WINDOW_MS;
-}
-
 function canMoveHarvesters() {
-  return myRole === "Household" && roundStartTime != null && !rangerWindowOpen() && !locked;
+  return myRole === "Household" && currentTurn === "households" && !locked;
 }
 
 function canProtectZones() {
-  return myRole === "Ranger" && rangerWindowOpen() && !locked;
+  return myRole === "Ranger" && currentTurn === "ranger" && !locked;
 }
 
 function resetRoundSelections() {
@@ -105,9 +121,10 @@ function resetRoundSelections() {
   Object.values(cellEls).forEach(c => c.classList.remove("protect-selected"));
 }
 
-function startCountdown() {
-  if (countdownInterval) clearInterval(countdownInterval);
-  roundStartTime = Date.now();
+/* Countdown of the current turn, with the time chosen by the game master */
+function startCountdown(seconds) {
+  stopCountdown();
+  turnEndsAt = Date.now() + seconds * 1000;
   updateCountdownDisplay();
   updateActionVisibility();
   countdownInterval = setInterval(() => {
@@ -116,12 +133,19 @@ function startCountdown() {
   }, 1000);
 }
 
+function stopCountdown() {
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = null;
+  turnEndsAt = null;
+  countdownLine.textContent = "";
+}
+
 function updateCountdownDisplay() {
-  const elapsed = Date.now() - roundStartTime;
-  const remainingMs = rangerWindowOpen()
-    ? RANGER_WINDOW_MS - elapsed
-    : (RANGER_WINDOW_MS + HOUSEHOLD_WINDOW_MS) - elapsed;
-  const remaining = Math.max(0, Math.round(remainingMs / 1000));
+  if (turnEndsAt == null) {
+    countdownLine.textContent = "";
+    return;
+  }
+  const remaining = Math.max(0, Math.round((turnEndsAt - Date.now()) / 1000));
   const mins = Math.floor(remaining / 60);
   const secs = remaining % 60;
   countdownLine.textContent = "Time left: " + mins + ":" + String(secs).padStart(2, "0");
@@ -129,36 +153,39 @@ function updateCountdownDisplay() {
 
 function updateActionVisibility() {
   statusLine.textContent = currentRound != null
-    ? "Round " + currentRound + (rangerWindowOpen() ? " - Ranger''s turn" : " - Household''s turn")
+    ? "Round " + currentRound + (currentTurn === "ranger" ? " - Ranger''s turn" : currentTurn === "households" ? " - Household''s turn" : "")
     : "";
-
   if (myRole === "Household") {
-    const myTurn = !rangerWindowOpen();
+    const myTurn = currentTurn === "households";
     trayEl.classList.toggle("hidden", !myTurn || locked);
     sendBtn.classList.toggle("hidden", !myTurn || locked);
     protectBtn.classList.add("hidden");
-    Object.values(cellEls).forEach(c => c.classList.remove("protectable"));
-
-    if (!myTurn) instructions.textContent = "Waiting for the Ranger to protect zones...";
+    Object.values(cellEls).forEach(c => {
+      c.classList.remove("protectable");
+      c.classList.toggle("pickable", myTurn && !locked);
+    });
+    if (!myTurn || locked) closePicker();
+    if (currentTurn === "ranger") instructions.textContent = "Waiting for the Ranger to protect zones...";
+    else if (!myTurn) instructions.textContent = "Waiting for the game master to start the next turn...";
     else if (locked) instructions.textContent = "Waiting for the round to resolve...";
-    else instructions.textContent = "Drag your harvesters onto the grid, then send.";
-
+    else instructions.textContent = "Tap a cell to choose which harvesters go there, then send.";
   } else if (myRole === "Ranger") {
-    const myTurn = rangerWindowOpen();
+    const myTurn = currentTurn === "ranger";
     sendBtn.classList.add("hidden");
     trayEl.classList.add("hidden");
     protectBtn.classList.toggle("hidden", !myTurn || locked);
     Object.values(cellEls).forEach(c => c.classList.toggle("protectable", myTurn && !locked));
-
-    if (!myTurn) instructions.textContent = "Waiting for Households to move their harvesters...";
+    if (currentTurn === "households") instructions.textContent = "Waiting for Households to move their harvesters...";
+    else if (!myTurn) instructions.textContent = "Waiting for the game master to start the next turn...";
     else if (locked) instructions.textContent = "Waiting for Households to take their turn...";
     else instructions.textContent = "Click up to " + MAX_PROTECTED_ZONES + " cells to protect, then send.";
-
   } else {
     sendBtn.classList.add("hidden");
     trayEl.classList.add("hidden");
     protectBtn.classList.add("hidden");
-    instructions.textContent = "You can watch the grid, but you have no actions available.";
+    instructions.textContent = myRole === "GameMaster"
+      ? "This name has the GameMaster role. In Cormas, give it the Household or Ranger role, then reload this page."
+      : "You have no role in this game. Ask the game master to give you a role in Cormas, then reload this page.";
   }
 }
 
@@ -167,7 +194,8 @@ function lockHarvesters() {
   sendBtn.disabled = true;
   protectBtn.disabled = true;
   document.querySelectorAll(".harvester-dot").forEach(d => d.remove());
-  trayTokens.forEach(t => { t.draggable = false; t.classList.add("locked"); });
+  trayTokens.forEach(t => t.classList.add("locked"));
+  closePicker();
   updateActionVisibility();
 }
 
@@ -177,28 +205,20 @@ for (let h = 0; h < 4; h++) {
   token.className = "harvester-token";
   token.style.background = "#999999";
   token.textContent = "H" + (h + 1);
-  token.draggable = true;
   token.dataset.harvester = h;
-
-  token.addEventListener("dragstart", (e) => {
-    if (!canMoveHarvesters()) { e.preventDefault(); return; }
-    e.dataTransfer.setData("text/plain", String(h));
-  });
-
   trayEl.appendChild(token);
   trayTokens.push(token);
 }
 
 const BIOMASS_COLORS = ["#f6f6f6", "#c8e6c9", "#81c784", "#388e3c"];
 const cellEls = {};
-
 for (let id = 1; id <= TOTAL_CELLS; id++) {
   const cell = document.createElement("div");
   cell.className = "cell";
   cell.dataset.id = id;
   cell.style.background = BIOMASS_COLORS[0];
-
   cell.addEventListener("click", () => {
+    if (canMoveHarvesters()) { openPicker(id); return; }
     if (!canProtectZones()) return;
     if (protectedZones.has(id)) {
       protectedZones.delete(id);
@@ -212,23 +232,6 @@ for (let id = 1; id <= TOTAL_CELLS; id++) {
       cell.classList.add("protect-selected");
     }
   });
-
-  cell.addEventListener("dragover", (e) => {
-    if (!canMoveHarvesters()) return;
-    e.preventDefault();
-    cell.classList.add("dragover");
-  });
-
-  cell.addEventListener("dragleave", () => cell.classList.remove("dragover"));
-
-  cell.addEventListener("drop", (e) => {
-    e.preventDefault();
-    cell.classList.remove("dragover");
-    if (!canMoveHarvesters()) return;
-    const h = Number(e.dataTransfer.getData("text/plain"));
-    placeHarvester(h, id);
-  });
-
   gridEl.appendChild(cell);
   cellEls[id] = cell;
 }
@@ -237,29 +240,70 @@ function placeHarvester(h, cellId) {
   removeHarvesterVisual(h);
   harvesterPlacement[h] = cellId;
   trayTokens[h].classList.add("placed");
-
   const dot = document.createElement("div");
   dot.className = "harvester-dot";
   dot.style.background = myColor();
   dot.textContent = "H" + (h + 1);
   dot.dataset.harvester = h;
-  dot.draggable = true;
-
-  dot.addEventListener("dragstart", (e) => {
-    if (!canMoveHarvesters()) { e.preventDefault(); return; }
-    e.dataTransfer.setData("text/plain", String(h));
-  });
-
-  dot.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (!canMoveHarvesters()) return;
-    removeHarvesterVisual(h);
-    harvesterPlacement[h] = null;
-    trayTokens[h].classList.remove("placed");
-  });
-
   cellEls[cellId].appendChild(dot);
 }
+
+function unplaceHarvester(h) {
+  removeHarvesterVisual(h);
+  harvesterPlacement[h] = null;
+  trayTokens[h].classList.remove("placed");
+}
+
+function openPicker(cellId) {
+  pickerCellId = cellId;
+  renderPicker();
+  pickerBackdrop.classList.remove("hidden");
+}
+
+function closePicker() {
+  pickerCellId = null;
+  pickerBackdrop.classList.add("hidden");
+}
+
+function renderPicker() {
+  if (pickerCellId == null) return;
+  pickerTitle.textContent = "Harvesters on cell " + pickerCellId;
+  pickerList.innerHTML = "";
+  harvesterPlacement.forEach((placedOn, h) => {
+    const row = document.createElement("label");
+    row.className = "picker-row";
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = placedOn === pickerCellId;
+    box.addEventListener("change", () => {
+      if (!canMoveHarvesters()) { closePicker(); return; }
+      if (box.checked) placeHarvester(h, pickerCellId);
+      else unplaceHarvester(h);
+      renderPicker();
+    });
+    const swatch = document.createElement("span");
+    swatch.className = "picker-swatch";
+    swatch.style.background = myColor();
+    swatch.textContent = "H" + (h + 1);
+    const where = document.createElement("span");
+    where.className = "picker-where";
+    where.textContent = placedOn == null ? "not placed"
+      : placedOn === pickerCellId ? "here"
+      : "on cell " + placedOn + " (will move)";
+    row.appendChild(box);
+    row.appendChild(swatch);
+    row.appendChild(where);
+    pickerList.appendChild(row);
+  });
+}
+
+pickerDone.addEventListener("click", closePicker);
+pickerBackdrop.addEventListener("click", (e) => {
+  if (e.target === pickerBackdrop) closePicker();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closePicker();
+});
 
 function removeHarvesterVisual(h) {
   const previousCellId = harvesterPlacement[h];
@@ -293,7 +337,6 @@ function applyHarvesters(values) {
     const id = i + 1;
     const cell = cellEls[id];
     if (!cell) return;
-
     let container = cell.querySelector(".harvester-chips");
     if (entries && entries.length > 0) {
       if (!container) {
@@ -327,7 +370,6 @@ function applyBirds(values) {
     const id = i + 1;
     const cell = cellEls[id];
     if (!cell) return;
-
     let adultIcon = cell.querySelector(".bird-icon-plain");
     if (entry.adults > 0) {
       if (!adultIcon) {
@@ -338,7 +380,6 @@ function applyBirds(values) {
     } else if (adultIcon) {
       adultIcon.remove();
     }
-
     let newbornChip = cell.querySelector(".newborn-chip");
     if (entry.newborns > 0) {
       if (!newbornChip) {
@@ -363,71 +404,97 @@ function reasonOf(m) {
   return (m.payload && m.payload.reason) || m.reason || "unknown";
 }
 
-let ws = null;
+/* Between turns, or when the round or the game is over: nobody can act */
+function pauseTurns(status, text) {
+  stopCountdown();
+  currentTurn = null;
+  closePicker();
+  updateActionVisibility();
+  if (status != null) statusLine.textContent = status;
+  if (text != null) instructions.textContent = text;
+}
 
+let ws = null;
 function connect(name) {
   myName = name;
   updateTrayColors();
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${proto}://${location.host}/ws`);
-
   ws.addEventListener("open", () => {
     reconnectAttempts = 0;
     ws.send(JSON.stringify({ type: "bonjour", name: name }));
-
     const heartbeat = setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "ping" }));
       else clearInterval(heartbeat);
     }, 5000);
   });
-
   ws.addEventListener("message", (ev) => {
     try {
       const m = parseServerMessage(ev.data);
-
-      if (m.type === "registered") {
+      if (m.type === "pong") {
+        return;
+      } else if (m.type === "registered") {
         localStorage.setItem("cm.name", m.payload.name);
         myName = m.payload.name;
         updateTrayColors();
         show("ok", `Welcome, ${m.payload.name}! Waiting for the game to start...`);
         addLog("REGISTERED as " + m.payload.name);
-
+        /* A fresh page (reloaded during the game): ask the server to show the game again */
+        if (myRole == null) ws.send(JSON.stringify({ type: "rejoin" }));
       } else if (m.type === "gameStarted") {
         myRole = m.payload.role;
         show("ok", `Game started! Your role: ${m.payload.role}`);
         addLog("GAME STARTED, role = " + m.payload.role);
         showGame();
         updateActionVisibility();
-
       } else if (m.type === "round") {
+        /* A new round: clear last round, then wait for the game master to start the first turn */
         currentRound = m.round;
         resetRoundSelections();
         locked = false;
         sendBtn.disabled = false;
         protectBtn.disabled = false;
-        trayTokens.forEach(t => { t.draggable = true; t.classList.remove("locked"); });
+        trayTokens.forEach(t => t.classList.remove("locked"));
         document.querySelectorAll(".harvester-dot").forEach(d => d.classList.remove("locked"));
-        startCountdown();
-
+        pauseTurns();
+      } else if (m.type === "turn") {
+        /* A turn starts, with the time chosen by the game master */
+        currentRound = m.round;
+        currentTurn = m.turn;
+        locked = false;
+        sendBtn.disabled = false;
+        protectBtn.disabled = false;
+        trayTokens.forEach(t => t.classList.remove("locked"));
+        startCountdown(m.seconds);
+      } else if (m.type === "turnEnded") {
+        pauseTurns();
+      } else if (m.type === "roundEnded") {
+        locked = true;
+        pauseTurns("Round " + m.round + " is over", "Waiting for the game master to start the next round...");
+      } else if (m.type === "roundResult") {
+        /* Only my own family result: what my harvesters collected this round, and my total */
+        myTotal = m.total;
+        resultGain.textContent = "Round " + m.round + ": your family harvested " + m.gain;
+        resultTotal.textContent = "Total since the start: " + m.total;
+        resultCard.classList.remove("hidden");
+      } else if (m.type === "gameOver") {
+        locked = true;
+        pauseTurns("Game over", myTotal != null
+          ? "The game is over. Your family harvested " + myTotal + " in total. Thank you for playing!"
+          : "The game is over. Thank you for playing!");
       } else if (m.type === "biomass") {
         applyBiomass(m.values);
-
       } else if (m.type === "birds") {
         applyBirds(m.values);
-
       } else if (m.type === "protection") {
         applyProtection(m.values);
-
       } else if (m.type === "harvesters") {
         applyHarvesters(m.values);
-
       } else if (m.type === "rejected" && reasonOf(m) === "name-taken") {
         show("error", "This name is already taken. Choose another.");
         ws.close();
-
       } else if (m.type === "error") {
         show("error", "Error: " + reasonOf(m));
-
       } else {
         addLog("<< " + ev.data);
       }
@@ -435,7 +502,6 @@ function connect(name) {
       addLog("<< " + ev.data);
     }
   });
-
   ws.addEventListener("close", (e) => {
     addLog("DISCONNECTED code=" + e.code + " reason=" + e.reason);
     if (myName) {
@@ -443,7 +509,6 @@ function connect(name) {
       setTimeout(() => connect(myName), Math.min(2000 * reconnectAttempts, 10000));
     }
   });
-
   ws.addEventListener("error", () => show("error", "Connection error"));
 }
 
@@ -485,5 +550,4 @@ protectBtn.addEventListener("click", () => {
   ws.send(JSON.stringify(payload));
   addLog(">> " + JSON.stringify(payload));
   lockHarvesters();
-});
-'
+});'

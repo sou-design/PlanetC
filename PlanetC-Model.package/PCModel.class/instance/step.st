@@ -1,4 +1,4 @@
-as yet unclassified
+stepping
 step
 	<control>
 	currentRound > maxRounds ifTrue: [ ^ self ].

@@ -14,4 +14,6 @@ initialize
 		type = 'protect' ifTrue: [
 		self cormasModel recordProtect: (dict at: 'cells').
 		self refreshCormasUI.
-		self broadcastProtection ] ]
+		self broadcastProtection ].
+		"Game master page: login with the secret key, player list, grid, Start button"
+		self handleGameMasterRequest: dict from: client ]

@@ -1,17 +1,254 @@
 as yet unclassified
 gmPageHtml
 	^ '<!DOCTYPE html>
-<html>
-<head><title>Game Master</title></head>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Game Master</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; background: #fafafa; color: #222 }
+  .hidden { display: none !important }
+  /* Login screen */
+  #gmLogin { max-width: 420px; margin: 6rem auto; padding: 0 1rem }
+  #gmLogin form { display: flex; flex-direction: column; gap: .75rem }
+  #gmLogin label { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem }
+  #gmLogin input { padding: .6rem .8rem; font-size: 1rem }
+  #gmLogin button { padding: .6rem 1rem; font-size: 1rem; cursor: pointer }
+  #gmError { color: #b00020; min-height: 1.2em }
+  /* Game master page */
+  #gmHeader { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+              padding: .75rem 1rem; background: #fff; border-bottom: 1px solid #ddd }
+  #gmIdentity { font-weight: 600 }
+  #gmHeaderRight { display: flex; align-items: center; gap: .75rem }
+  #gmConnection { font-size: .85rem; color: #666 }
+  #gmConnection.online { color: #1b7f3b }
+  #gmConnection.offline { color: #b00020 }
+  #gmConnection.replaced { color: #b36b00 }
+  #gmSignOut { padding: .4rem .8rem; cursor: pointer }
+  #gmMain { padding: 1rem; max-width: 720px }
+  #gmMain h2 { font-size: 1.1rem; margin: 0 0 .25rem }
+  #playerSummary { color: #666; font-size: .9rem; margin: 0 0 .75rem }
+  #playerList { list-style: none; margin: 0; padding: 0; background: #fff;
+                border: 1px solid #ddd; border-radius: 6px }
+  #playerList li { display: flex; align-items: center; gap: .6rem; padding: .6rem .8rem;
+                   border-bottom: 1px solid #eee }
+  #playerList li:last-child { border-bottom: none }
+  .player-dot { width: .6rem; height: .6rem; border-radius: 50%; background: #bbb; flex: none }
+  .player-dot.connected { background: #1b9e4b }
+  .player-name { flex: 1; overflow-wrap: anywhere }
+  .player-role { font-size: .8rem; color: #555; background: #eee; border-radius: 4px; padding: .1rem .4rem }
+  .player-status { font-size: .8rem; color: #888 }
+  #playerEmpty { color: #888; font-style: italic }
+  /* Join panel with QR code */
+  #joinPanel { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; background: #fff;
+               border: 1px solid #ddd; border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem }
+  #joinQr { width: 220px; max-width: 100%; aspect-ratio: 1; background: #fff; flex: none }
+  #joinQr svg { width: 100%; height: 100% }
+  #joinInfo { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: .5rem }
+  #joinUrlText { font-size: 1.3rem; font-weight: 600; overflow-wrap: anywhere; margin: 0 }
+  #joinUrlInput, #joinAddressSelect { padding: .4rem .6rem; font-size: .9rem; font-family: monospace }
+  #joinHint { font-size: .85rem; color: #666; margin: 0 }
+  #joinHint.warning { color: #b36b00 }
+  /* Start button */
+  #startPanel { margin-top: 1.5rem; display: flex; flex-direction: column; gap: .5rem; align-items: flex-start }
+  #startBtn { padding: .75rem 1.5rem; font-size: 1.1rem; font-weight: 600; cursor: pointer;
+              background: #1b7f3b; color: #fff; border: none; border-radius: 6px }
+  #startBtn:disabled { background: #bbb; cursor: default }
+  #startHint { font-size: .9rem; color: #666; margin: 0 }
+  #startHint.warning { color: #b36b00 }
+  /* Tabs */
+  #gmTabs { display: flex; gap: .25rem; padding: 0 1rem; background: #fff; border-bottom: 1px solid #ddd }
+  #gmTabs button { padding: .7rem 1rem; border: none; background: none; cursor: pointer; font-size: .95rem;
+                   color: #555; border-bottom: 3px solid transparent }
+  #gmTabs button[aria-selected="true"] { color: #111; font-weight: 600; border-bottom-color: #1b7f3b }
+  #gmTabs button .dot { display: inline-block; width: .5rem; height: .5rem; border-radius: 50%;
+                        background: #d9822b; margin-left: .4rem; vertical-align: middle }
+  #gmAlert { background: #fdecea; color: #8a1c14; border: 1px solid #f5c2bd; border-radius: 6px;
+             padding: .6rem .8rem; margin: 0 0 1rem; white-space: pre-wrap }
+  /* Results */
+  #resultsEmpty, #resultsNote { color: #666; font-size: .9rem }
+  #resultsSummary { margin: 0 0 .5rem; font-weight: 600 }
+  #resultsScroll { overflow-x: auto; background: #fff; border: 1px solid #ddd; border-radius: 6px }
+  #resultsTable { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums }
+  #resultsTable th, #resultsTable td { padding: .5rem .7rem; border-bottom: 1px solid #eee; text-align: right; white-space: nowrap }
+  #resultsTable th:first-child, #resultsTable td:first-child,
+  #resultsTable th:nth-child(2), #resultsTable td:nth-child(2) { text-align: left }
+  #resultsTable thead th { background: #f4f4f4; font-size: .85rem; color: #444 }
+  #resultsTable td.total { font-weight: 700 }
+  #resultsTable tr.leader td { background: #eef7ef }
+  #resultsTable tr:last-child td { border-bottom: none }
+  /* Round controls */
+  #gameNotStarted { color: #666 }
+  #roundPanel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1rem; margin-bottom: 1rem }
+  #roundTitle { font-size: 1.2rem; font-weight: 600; margin: 0 0 .25rem }
+  #roundPhase { margin: 0 0 .75rem; color: #444 }
+  #roundPhase .time { font-variant-numeric: tabular-nums; font-weight: 600 }
+  #turnField { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem; margin-bottom: .5rem }
+  #turnSeconds { width: 9rem; padding: .45rem .6rem; font-size: 1rem }
+  #roundButtons { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .5rem }
+  #proceedBtn { padding: .7rem 1.4rem; font-size: 1.05rem; font-weight: 600; cursor: pointer;
+                background: #1b7f3b; color: #fff; border: none; border-radius: 6px }
+  #proceedBtn:disabled { background: #bbb; cursor: default }
+  #finishBtn { padding: .7rem 1.4rem; font-size: 1.05rem; cursor: pointer; background: #fff;
+               color: #b00020; border: 1px solid #b00020; border-radius: 6px }
+  #finishBtn:disabled { opacity: .5; cursor: default }
+  /* Game grid, same look as the players grid */
+  #gamePanel { margin-top: .5rem }
+  #gameBar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem }
+  #gameStatus { color: #555; font-size: .95rem }
+  #birdsBtn { padding: .45rem .9rem; cursor: pointer; border: 1px solid #999; border-radius: 6px; background: #fff }
+  #birdsBtn[aria-pressed="true"] { background: #333; color: #fff; border-color: #333 }
+  #gmGrid { display: grid; grid-template-columns: repeat(5, 1fr); margin: .75rem 0;
+            border: 1px solid #999; border-radius: 6px; overflow: hidden; max-width: 560px }
+  #gmGrid .cell { aspect-ratio: 1; border: 1px solid #999; background: #f6f6f6; position: relative }
+  #gmGrid .cell.protected-shared { outline: 3px solid #b00020; outline-offset: -3px }
+  #gmGrid .cell-id { position: absolute; top: 3px; right: 5px; font-size: 10px; color: rgba(0,0,0,.35) }
+  #gmGrid .harvester-chips { position: absolute; bottom: 4px; left: 4px; right: 4px; display: flex; flex-wrap: wrap; gap: 3px }
+  #gmGrid .harvester-chip { display: flex; align-items: center; gap: 3px; background: rgba(255,255,255,.85);
+                            border-radius: 4px; padding: 1px 4px; font-size: 11px; line-height: 1.2 }
+  #gmGrid .harvester-chip-swatch { width: 8px; height: 8px; border-radius: 2px; display: inline-block }
+  #gmGrid .bird-icon-plain { position: absolute; top: 4px; left: 4px; width: 16px; height: 16px;
+                             background: url(/icons/bird.png) center / contain no-repeat }
+  #gmGrid .newborn-chip { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                          display: flex; align-items: center; gap: 3px; background: rgba(255,255,255,.9);
+                          border-radius: 10px; padding: 2px 6px 2px 3px; font-size: 11px; line-height: 1.2 }
+  #gmGrid .bird-chip-icon { width: 14px; height: 14px; display: inline-block;
+                            background: url(/icons/poussin.png) center / contain no-repeat }
+  #gameLegend { display: flex; flex-wrap: wrap; gap: .75rem; font-size: .85rem; color: #555 }
+  #gameLegend span { display: inline-flex; align-items: center; gap: .3rem }
+  #gameLegend i { width: .8rem; height: .8rem; border-radius: 2px; display: inline-block }
+</style>
+</head>
 <body>
-<h1>Game Master Control</h1>
-<form id="auth">
-  <input type="password" id="secret" placeholder="Secret key" />
-  <button type="submit">Enter</button>
-</form>
-<div id="controls" style="display:none">
-  <p>Authenticated. Controls coming soon.</p>
-</div>
+
+<section id="gmLogin">
+  <h1>Game Master</h1>
+  <form id="gmForm">
+    <label>Name
+      <input id="gmName" type="text" required minlength="2" maxlength="40" autocomplete="name" />
+    </label>
+    <label>Organization
+      <input id="gmOrg" type="text" required minlength="2" maxlength="60" autocomplete="organization" />
+    </label>
+    <label>Game master key
+      <input id="gmSecret" type="password" required autocomplete="current-password" />
+    </label>
+    <button type="submit">Continue</button>
+    <p id="gmError"></p>
+  </form>
+</section>
+
+<section id="gmDashboard" class="hidden">
+  <header id="gmHeader">
+    <span id="gmIdentity"></span>
+    <div id="gmHeaderRight">
+      <span id="gmConnection">Connecting...</span>
+      <button type="button" id="gmSignOut">Sign out</button>
+    </div>
+  </header>
+  <nav id="gmTabs" role="tablist">
+    <button type="button" role="tab" id="tabLobby" aria-selected="true" aria-controls="panelLobby">Players &amp; QR code</button>
+    <button type="button" role="tab" id="tabGame" aria-selected="false" aria-controls="panelGame">Grid</button>
+    <button type="button" role="tab" id="tabResults" aria-selected="false" aria-controls="panelResults">Results</button>
+  </nav>
+  <main id="gmMain">
+    <p id="gmAlert" class="hidden" role="alert"></p>
+    <div id="roundPanel" class="hidden">
+      <p id="roundTitle"></p>
+      <p id="roundPhase"></p>
+
+      <div id="roundSetup" class="hidden">
+        <label id="turnField">
+          <span id="turnFieldText"></span>
+          <input id="turnSeconds" type="number" min="5" max="3600" step="5" />
+        </label>
+        <div id="roundButtons">
+          <button type="button" id="proceedBtn">Proceed</button>
+          <button type="button" id="finishBtn" class="hidden">Finish the game</button>
+        </div>
+      </div>
+    </div>
+
+    <section id="panelLobby" role="tabpanel" aria-labelledby="tabLobby">
+      <h2>Join the game</h2>
+      <div id="joinPanel">
+        <div id="joinQr" aria-label="QR code to join the game"></div>
+        <div id="joinInfo">
+          <p id="joinUrlText"></p>
+          <label id="joinAddressLabel" for="joinAddressSelect" class="hidden" style="font-size:.85rem">This laptop has several network addresses. Pick the one on the players network:</label>
+          <select id="joinAddressSelect" class="hidden"></select>
+          <label for="joinUrlInput" style="font-size:.85rem">Join address (edit if players cannot reach it)</label>
+          <input id="joinUrlInput" type="text" spellcheck="false" />
+          <p id="joinHint"></p>
+        </div>
+      </div>
+      <h2>Players</h2>
+      <p id="playerSummary"></p>
+      <p id="playerEmpty">No players have joined yet.</p>
+      <ul id="playerList" class="hidden"></ul>
+      <div id="startPanel">
+        <button type="button" id="startBtn" disabled>Start the game</button>
+        <p id="startHint"></p>
+      </div>
+    </section>
+
+    <section id="panelGame" role="tabpanel" aria-labelledby="tabGame" class="hidden">
+      <p id="gameNotStarted">The grid appears when the game starts.</p>
+
+      <section id="gamePanel" class="hidden">
+        <div id="gameBar">
+          <h2 style="margin:0">Grid</h2>
+          <span id="gameStatus"></span>
+          <button type="button" id="birdsBtn" aria-pressed="false">Show birds</button>
+        </div>
+        <div id="gmGrid"></div>
+        <div id="gameLegend"></div>
+      </section>
+    </section>
+    <section id="panelResults" role="tabpanel" aria-labelledby="tabResults" class="hidden">
+      <h2>Family results</h2>
+      <p id="resultsEmpty">Results appear at the end of each round.</p>
+      <div id="resultsWrap" class="hidden">
+        <p id="resultsSummary"></p>
+        <div id="resultsScroll"><table id="resultsTable"></table></div>
+        <p id="resultsNote">Gain = biomass collected by the family harvesters in the round.</p>
+      </div>
+    </section>
+  </main>
+</section>
+
+<script>
+/* Tabs and error reporting that work on their own, even if gm.js is old or fails */
+(function () {
+  var alertEl = document.getElementById("gmAlert");
+  function banner(text) {
+    var shown = !alertEl.classList.contains("hidden") && alertEl.textContent;
+    alertEl.textContent = shown ? alertEl.textContent + "\n" + text : text;
+    alertEl.classList.remove("hidden");
+  }
+  window.addEventListener("error", function (e) {
+    banner("Script error: " + e.message + (e.lineno ? " (line " + e.lineno + ")" : ""));
+  });
+  var tabs = { lobby: "tabLobby", game: "tabGame", results: "tabResults" };
+  var panels = { lobby: "panelLobby", game: "panelGame", results: "panelResults" };
+  function show(name) {
+    for (var key in tabs) {
+      document.getElementById(tabs[key]).setAttribute("aria-selected", String(key === name));
+      document.getElementById(panels[key]).classList.toggle("hidden", key !== name);
+    }
+  }
+  document.getElementById("tabLobby").addEventListener("click", function () { show("lobby"); });
+  document.getElementById("tabGame").addEventListener("click", function () { show("game"); });
+  document.getElementById("tabResults").addEventListener("click", function () { show("results"); });
+  window.addEventListener("load", function () {
+    if (window.gmScriptVersion !== 7) {
+      banner("The game master script is an older version. In Pharo, replace PCGameServer class >> gmScript, then reload this page with Ctrl+F5.");
+    }
+  });
+})();
+</script>
+<script src="/qrcode.js"></script>
 <script src="/gm.js"></script>
 </body>
 </html>'

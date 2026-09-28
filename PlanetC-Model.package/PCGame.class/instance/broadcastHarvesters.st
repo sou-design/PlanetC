@@ -1,4 +1,4 @@
-as yet unclassified
+broadcast
 broadcastHarvesters
 	server broadcast: (Dictionary new
 		at: 'type' put: 'harvesters';

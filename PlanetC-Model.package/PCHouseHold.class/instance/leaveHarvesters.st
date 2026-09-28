@@ -1,3 +1,3 @@
-as yet unclassified
+removing
 leaveHarvesters
 	self activeHarvesters do: [ :harvester | harvester leave ]

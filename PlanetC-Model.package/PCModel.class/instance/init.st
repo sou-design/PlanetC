@@ -1,4 +1,4 @@
-as yet unclassified
+init
 init
 	<init>
 	self makeAgentsScatteredInCells.

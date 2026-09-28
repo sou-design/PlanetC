@@ -1,3 +1,3 @@
-as yet unclassified
+helper methods
 activeHarvesters 
 	^ children select: [ :h | h cell isNotNil ]
