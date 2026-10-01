@@ -6,9 +6,8 @@
 	"pools" : [ ],
 	"classvars" : [ ],
 	"instvars" : [
-		"roundProcess",
 		"runnerPresenter",
-		"harvestHistory"
+		"phase"
 	],
 	"name" : "PCGame",
 	"type" : "normal"

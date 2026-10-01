@@ -1,9 +1,5 @@
 as yet unclassified
 localNetworkAddresses
-	"IPv4 addresses of this laptop, read from the network configuration:
-	ipconfig on Windows, ip (Linux) or ifconfig (macOS) otherwise.
-	Loopback (127.x) and self-assigned (169.254.x) addresses are skipped.
-	Home and office network addresses (192.168.x, 10.x, 172.x) come first."
 	| file command output addresses rank |
 	file := FileLocator temp / 'cormas-ipconfig.txt'.
 	command := OSPlatform current isWindows

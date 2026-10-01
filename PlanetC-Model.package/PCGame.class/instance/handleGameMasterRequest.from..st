@@ -1,7 +1,7 @@
 game master
 handleGameMasterRequest: aDictionary from: aClient
-	
-	| type players model phase reply seconds |
+
+	| type players model reply seconds |
 	type := aDictionary at: 'type' ifAbsent: [ ^ self ].
 
 	type = 'gmLogin' ifTrue: [
@@ -22,15 +22,6 @@ handleGameMasterRequest: aDictionary from: aClient
 	aClient role = PCGameMasterRole ifFalse: [ ^ self ].
 	players := server clients reject: [ :c | c role = PCGameMasterRole ].
 	model := self cormasModel.
-	phase := roundProcess isNil
-		ifTrue: [ 'lobby' ]
-		ifFalse: [
-			roundProcess isTerminated
-				ifFalse: [ roundProcess name = 'Ranger turn' ifTrue: [ 'rangerTurn' ] ifFalse: [ 'householdsTurn' ] ]
-				ifTrue: [
-					roundProcess name = 'Ranger turn'
-						ifTrue: [ 'rangerDone' ]
-						ifFalse: [ model currentRound > model maxRounds ifTrue: [ 'ended' ] ifFalse: [ 'ready' ] ] ] ].
 	reply := Dictionary new at: 'type' put: type; yourself.
 
 	"Asked every 2 seconds: roles are assigned in the Cormas presenter, which sends no event.
@@ -54,7 +45,7 @@ handleGameMasterRequest: aDictionary from: aClient
 
 	"Page opened or reloaded during a game: send the grid again (to everyone, it is harmless)"
 	type = 'gmGrid' ifTrue: [
-		phase = 'lobby' ifFalse: [ self broadcastBiomass; broadcastBirds; broadcastProtection; broadcastHarvesters ].
+		phase = 'lobby' ifFalse: [ 	self updateAllViews ].
 		^ self ].
 
 	type = 'gmStart' ifTrue: [
@@ -87,6 +78,7 @@ handleGameMasterRequest: aDictionary from: aClient
 		((phase = 'ready' or: [ phase = 'ended' ]) and: [ model currentRound > 1 ]) ifFalse: [
 			^ aClient sendMessage: (reply at: 'result' put: 'notReady'; yourself) ].
 		model maxRounds: model currentRound - 1.
+		phase := 'ended'.
 		server broadcast: (Dictionary new
 			at: 'type' put: 'gameOver';
 			at: 'rounds' put: model currentRound - 1;
