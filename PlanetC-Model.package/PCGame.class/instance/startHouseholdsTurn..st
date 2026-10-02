@@ -1,8 +1,7 @@
 initialization
 startHouseholdsTurn: seconds
-	| model round |
-	model := self cormasModel.
-	round := model currentRound.
+	| round |
+	round := self cormasModel currentRound.
 	phase := 'householdsTurn'.
 	[ [ | waited |
 		server broadcast: (Dictionary new
@@ -15,20 +14,14 @@ startHouseholdsTurn: seconds
 		[ waited < (seconds * 1000) and: [ self allRequiredActionsSubmitted not ] ] whileTrue: [
 			(Delay forMilliseconds: 500) wait.
 			waited := waited + 500 ].
-		model resolveRound.
-		model households do: [ :household | household recordGain ].
-		self incrementCurrentTimeStep.
-		model removeDestroyedEntities.
-		self recordData.
-		self broadcastState.
-		self broadcastResults.
+		phase := 'householdsDone'.
 		server broadcast: (Dictionary new
-			at: 'type' put: 'roundEnded';
+			at: 'type' put: 'turnEnded';
 			at: 'round' put: round;
-			at: 'maxRounds' put: model maxRounds;
-			yourself) ]
+			at: 'turn' put: 'households';
+			yourself).
+		self broadcastMoves ]
 			on: Error
-			do: [ :e | Transcript showCr: 'Households turn crashed: ', e messageText ].
-	phase := model currentRound > model maxRounds
-		ifTrue: [ 'ended' ]
-		ifFalse: [ 'ready' ] ] forkNamed: 'Households turn'
+			do: [ :e |
+				phase := 'householdsDone'.
+				Transcript showCr: 'Households turn crashed: ', e messageText ] ] forkNamed: 'Households turn'

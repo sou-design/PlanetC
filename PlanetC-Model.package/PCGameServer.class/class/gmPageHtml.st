@@ -9,14 +9,14 @@ gmPageHtml
 <style>
   body { font-family: system-ui, sans-serif; margin: 0; background: #fafafa; color: #222 }
   .hidden { display: none !important }
-  /* Login screen */
+
   #gmLogin { max-width: 420px; margin: 6rem auto; padding: 0 1rem }
   #gmLogin form { display: flex; flex-direction: column; gap: .75rem }
   #gmLogin label { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem }
   #gmLogin input { padding: .6rem .8rem; font-size: 1rem }
   #gmLogin button { padding: .6rem 1rem; font-size: 1rem; cursor: pointer }
   #gmError { color: #b00020; min-height: 1.2em }
-  /* Game master page */
+
   #gmHeader { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
               padding: .75rem 1rem; background: #fff; border-bottom: 1px solid #ddd }
   #gmIdentity { font-weight: 600 }
@@ -40,7 +40,7 @@ gmPageHtml
   .player-role { font-size: .8rem; color: #555; background: #eee; border-radius: 4px; padding: .1rem .4rem }
   .player-status { font-size: .8rem; color: #888 }
   #playerEmpty { color: #888; font-style: italic }
-  /* Join panel with QR code */
+
   #joinPanel { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; background: #fff;
                border: 1px solid #ddd; border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem }
   #joinQr { width: 220px; max-width: 100%; aspect-ratio: 1; background: #fff; flex: none }
@@ -50,14 +50,14 @@ gmPageHtml
   #joinUrlInput, #joinAddressSelect { padding: .4rem .6rem; font-size: .9rem; font-family: monospace }
   #joinHint { font-size: .85rem; color: #666; margin: 0 }
   #joinHint.warning { color: #b36b00 }
-  /* Start button */
+
   #startPanel { margin-top: 1.5rem; display: flex; flex-direction: column; gap: .5rem; align-items: flex-start }
   #startBtn { padding: .75rem 1.5rem; font-size: 1.1rem; font-weight: 600; cursor: pointer;
               background: #1b7f3b; color: #fff; border: none; border-radius: 6px }
   #startBtn:disabled { background: #bbb; cursor: default }
   #startHint { font-size: .9rem; color: #666; margin: 0 }
   #startHint.warning { color: #b36b00 }
-  /* Tabs */
+
   #gmTabs { display: flex; gap: .25rem; padding: 0 1rem; background: #fff; border-bottom: 1px solid #ddd }
   #gmTabs button { padding: .7rem 1rem; border: none; background: none; cursor: pointer; font-size: .95rem;
                    color: #555; border-bottom: 3px solid transparent }
@@ -66,7 +66,7 @@ gmPageHtml
                         background: #d9822b; margin-left: .4rem; vertical-align: middle }
   #gmAlert { background: #fdecea; color: #8a1c14; border: 1px solid #f5c2bd; border-radius: 6px;
              padding: .6rem .8rem; margin: 0 0 1rem; white-space: pre-wrap }
-  /* Results */
+
   #resultsEmpty, #resultsNote { color: #666; font-size: .9rem }
   #resultsSummary { margin: 0 0 .5rem; font-weight: 600 }
   #resultsScroll { overflow-x: auto; background: #fff; border: 1px solid #ddd; border-radius: 6px }
@@ -78,7 +78,7 @@ gmPageHtml
   #resultsTable td.total { font-weight: 700 }
   #resultsTable tr.leader td { background: #eef7ef }
   #resultsTable tr:last-child td { border-bottom: none }
-  /* Round controls */
+
   #gameNotStarted { color: #666 }
   #roundPanel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1rem; margin-bottom: 1rem }
   #roundTitle { font-size: 1.2rem; font-weight: 600; margin: 0 0 .25rem }
@@ -93,7 +93,7 @@ gmPageHtml
   #finishBtn { padding: .7rem 1.4rem; font-size: 1.05rem; cursor: pointer; background: #fff;
                color: #b00020; border: 1px solid #b00020; border-radius: 6px }
   #finishBtn:disabled { opacity: .5; cursor: default }
-  /* Game grid, same look as the players grid */
+
   #gamePanel { margin-top: .5rem }
   #gameBar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem }
   #gameStatus { color: #555; font-size: .95rem }
@@ -118,6 +118,13 @@ gmPageHtml
   #gameLegend { display: flex; flex-wrap: wrap; gap: .75rem; font-size: .85rem; color: #555 }
   #gameLegend span { display: inline-flex; align-items: center; gap: .3rem }
   #gameLegend i { width: .8rem; height: .8rem; border-radius: 2px; display: inline-block }
+  #movesPanel { margin-top: .75rem; background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: .75rem 1rem }
+  #movesPanel h3 { margin: 0 0 .25rem; font-size: 1rem }
+  .move-row { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .4rem 0; border-top: 1px solid #eee }
+  .move-name { display: inline-flex; align-items: center; gap: .35rem; min-width: 8rem; font-weight: 600 }
+  .move-name i { width: .8rem; height: .8rem; border-radius: 2px; display: inline-block }
+  .small { font-size: .85rem }
+  #gameBar h2 { margin: 0 }
 </style>
 </head>
 <body>
@@ -176,9 +183,9 @@ gmPageHtml
         <div id="joinQr" aria-label="QR code to join the game"></div>
         <div id="joinInfo">
           <p id="joinUrlText"></p>
-          <label id="joinAddressLabel" for="joinAddressSelect" class="hidden" style="font-size:.85rem">This laptop has several network addresses. Pick the one on the players network:</label>
+          <label id="joinAddressLabel" for="joinAddressSelect" class="hidden small">This laptop has several network addresses. Pick the one on the players network:</label>
           <select id="joinAddressSelect" class="hidden"></select>
-          <label for="joinUrlInput" style="font-size:.85rem">Join address (edit if players cannot reach it)</label>
+          <label for="joinUrlInput" class="small">Join address (edit if players cannot reach it)</label>
           <input id="joinUrlInput" type="text" spellcheck="false" />
           <p id="joinHint"></p>
         </div>
@@ -198,12 +205,18 @@ gmPageHtml
 
       <section id="gamePanel" class="hidden">
         <div id="gameBar">
-          <h2 style="margin:0">Grid</h2>
+          <h2>Grid</h2>
           <span id="gameStatus"></span>
           <button type="button" id="birdsBtn" aria-pressed="false">Show birds</button>
+          <button type="button" id="movesBtn" class="hidden">Modify harvesters</button>
         </div>
         <div id="gmGrid"></div>
         <div id="gameLegend"></div>
+        <div id="movesPanel" class="hidden">
+          <h3>Harvesters of each family</h3>
+          <p>Change where the harvesters of a family go this round, then click Save. Players see the change on the grid.</p>
+          <div id="movesList"></div>
+        </div>
       </section>
     </section>
     <section id="panelResults" role="tabpanel" aria-labelledby="tabResults" class="hidden">
@@ -219,34 +232,12 @@ gmPageHtml
 </section>
 
 <script>
-/* Tabs and error reporting that work on their own, even if gm.js is old or fails */
-(function () {
+
+window.addEventListener("error", function (e) {
   var alertEl = document.getElementById("gmAlert");
-  function banner(text) {
-    var shown = !alertEl.classList.contains("hidden") && alertEl.textContent;
-    alertEl.textContent = shown ? alertEl.textContent + "\n" + text : text;
-    alertEl.classList.remove("hidden");
-  }
-  window.addEventListener("error", function (e) {
-    banner("Script error: " + e.message + (e.lineno ? " (line " + e.lineno + ")" : ""));
-  });
-  var tabs = { lobby: "tabLobby", game: "tabGame", results: "tabResults" };
-  var panels = { lobby: "panelLobby", game: "panelGame", results: "panelResults" };
-  function show(name) {
-    for (var key in tabs) {
-      document.getElementById(tabs[key]).setAttribute("aria-selected", String(key === name));
-      document.getElementById(panels[key]).classList.toggle("hidden", key !== name);
-    }
-  }
-  document.getElementById("tabLobby").addEventListener("click", function () { show("lobby"); });
-  document.getElementById("tabGame").addEventListener("click", function () { show("game"); });
-  document.getElementById("tabResults").addEventListener("click", function () { show("results"); });
-  window.addEventListener("load", function () {
-    if (window.gmScriptVersion !== 7) {
-      banner("The game master script is an older version. In Pharo, replace PCGameServer class >> gmScript, then reload this page with Ctrl+F5.");
-    }
-  });
-})();
+  alertEl.textContent = "Script error: " + e.message + (e.lineno ? " (line " + e.lineno + ")" : "");
+  alertEl.classList.remove("hidden");
+});
 </script>
 <script src="/qrcode.js"></script>
 <script src="/gm.js"></script>

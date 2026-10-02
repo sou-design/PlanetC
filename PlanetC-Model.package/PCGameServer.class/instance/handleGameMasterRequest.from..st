@@ -43,6 +43,7 @@ handleGameMasterRequest: aDictionary from: aClient
 
 	type = 'gmGrid' ifTrue: [
 		game phase = 'lobby' ifFalse: [ game broadcastState ].
+		game phase = 'householdsDone' ifTrue: [ game broadcastMoves ].
 		^ self ].
 
 	type = 'gmStart' ifTrue: [
@@ -55,4 +56,9 @@ handleGameMasterRequest: aDictionary from: aClient
 		seconds := (((aDictionary at: 'seconds' ifAbsent: [ 60 ]) asInteger) max: 5) min: 3600.
 		^ answer value: (game proceed: seconds) ].
 
-	type = 'gmFinish' ifTrue: [ ^ answer value: game finish ]
+	type = 'gmFinish' ifTrue: [ ^ answer value: game finish ].
+
+	type = 'gmMove' ifTrue: [
+		^ answer value: (game
+			changeMove: (aDictionary at: 'harvesterCells')
+			ofHousehold: (aDictionary at: 'household')) ]

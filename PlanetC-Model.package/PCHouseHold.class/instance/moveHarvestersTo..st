@@ -3,5 +3,9 @@ moveHarvestersTo: cellsArray
 	| count |
 	count := cellsArray size min: children size.
 	1 to: count do: [ :i |
-		(cellsArray at: i) ifNotNil: [ :cellId |
-			(children at: i) moveTo: (self cormasModel cells at: cellId) ] ]
+		| harvester cellId |
+		harvester := children at: i.
+		cellId := cellsArray at: i.
+		cellId
+			ifNil: [ harvester cell ifNotNil: [ harvester leave ] ]
+			ifNotNil: [ harvester moveTo: (self cormasModel cells at: cellId) ] ]

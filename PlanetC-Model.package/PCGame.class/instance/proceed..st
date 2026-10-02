@@ -1,8 +1,10 @@
 accessing
 proceed: seconds
-	"Start the next turn. Answer 'ok' or 'notReady'"
 	| model |
 	model := self cormasModel.
+	phase = 'householdsDone' ifTrue: [
+		self resolveHouseholdsTurn.
+		^ 'ok' ].
 	phase = 'ended' ifTrue: [
 		model maxRounds: model currentRound.
 		phase := 'ready' ].

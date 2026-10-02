@@ -26,16 +26,6 @@ button:disabled { opacity: .5; cursor: not-allowed }
 .cell.protected-shared { outline: 3px solid #b00020; outline-offset: -3px }
 .cell.protectable, .cell.pickable { cursor: pointer }
 .cell.pickable:hover { outline: 2px solid #333; outline-offset: -2px }
-.bird-badge, .newborn-badge, .harvester-count-badge, .protection-badge {
-  position: absolute;
-  width: 16px; height: 16px; border-radius: 50%;
-  font-size: 9px; color: #fff; font-weight: bold;
-  display: flex; align-items: center; justify-content: center;
-}
-.bird-badge { top: 2px; right: 2px; background: #333; }
-.newborn-badge { top: 2px; left: 2px; background: #f4a261; }
-.harvester-count-badge { bottom: 2px; right: 2px; background: #1d3557; }
-.protection-badge { bottom: 2px; left: 2px; background: #457b9d; font-size: 11px; }
 .harvester-tray {
   display: flex; gap: 10px; margin: .75rem 0;
   min-height: 40px; align-items: center;
@@ -60,23 +50,6 @@ button:disabled { opacity: .5; cursor: not-allowed }
 .status { font-size: .85rem; color: #555; margin-top: .5rem }
 #sendBtn, #protectBtn { width: 100%; padding: .8rem; font-size: 1rem; margin-top: .5rem }
 pre { background: #f6f6f6; padding: .75rem; overflow: auto; max-height: 160px }
-.harvester-shapes {
-  position: absolute;
-  bottom: 2px;
-  left: 2px;
-  right: 2px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  pointer-events: none;
-}
-
-.harvester-shape {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #555;
-}
 .harvester-chips {
   position: absolute;
   bottom: 4px;
@@ -106,15 +79,6 @@ pre { background: #f6f6f6; padding: .75rem; overflow: auto; max-height: 160px }
 }
 .icon-bird { background-image: url(''/icons/bird.png''); }
 .icon-poussin { background-image: url(''/icons/poussin.png''); }
-
-.bird-chips {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  right: 4px;
-  display: flex;
-  gap: 3px;
-}
 .bird-icon-plain {
   position: absolute;
   top: 4px;
@@ -177,4 +141,7 @@ pre { background: #f6f6f6; padding: .75rem; overflow: auto; max-height: 160px }
 }
 .picker-where { font-size: .85rem; color: #555 }
 #pickerDone { width: 100% }
-'
+#resultCard { margin: 1rem 0; padding: .8rem 1rem; border-radius: 8px; background: #eef7ef;
+              border: 1px solid #b7dcbc; color: #1d4d27 }
+#resultGain { margin: 0 0 .25rem; font-size: 1.15rem; font-weight: 600 }
+#resultTotal { margin: 0 }'
