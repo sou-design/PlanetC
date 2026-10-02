@@ -1,4 +1,4 @@
-as yet unclassified
+biomass
 regrowBiomass
 	"non-harvest time = 0 (harvested last turn) -> croissance +1, compteur +1
 	 non-harvest time = 1 (harvested il y a 2 tours) -> stable, compteur +1

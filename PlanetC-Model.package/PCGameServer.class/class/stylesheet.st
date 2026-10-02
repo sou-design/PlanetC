@@ -22,10 +22,10 @@ button:disabled { opacity: .5; cursor: not-allowed }
   position: relative;
   display: flex; align-items: center; justify-content: center;
 }
-.cell.dragover { outline: 3px dashed #333; outline-offset: -3px }
 .cell.protect-selected { outline: 3px solid #b00020; outline-offset: -3px }
 .cell.protected-shared { outline: 3px solid #b00020; outline-offset: -3px }
-.cell.protectable { cursor: pointer }
+.cell.protectable, .cell.pickable { cursor: pointer }
+.cell.pickable:hover { outline: 2px solid #333; outline-offset: -2px }
 .bird-badge, .newborn-badge, .harvester-count-badge, .protection-badge {
   position: absolute;
   width: 16px; height: 16px; border-radius: 50%;
@@ -42,22 +42,18 @@ button:disabled { opacity: .5; cursor: not-allowed }
 }
 .harvester-token {
   width: 28px; height: 28px; border-radius: 50%;
-  cursor: grab; border: 2px solid rgba(0,0,0,.3);
+  border: 2px solid rgba(0,0,0,.3);
   display: flex; align-items: center; justify-content: center;
   font-size: .7rem; color: #fff; font-weight: bold;
 }
-.harvester-token:active { cursor: grabbing }
 .harvester-token.placed { opacity: .35 }
-.harvester-token.locked { cursor: not-allowed; opacity: .35 }
+.harvester-token.locked { opacity: .35 }
 .harvester-dot {
   width: 22px; height: 22px; border-radius: 50%;
   border: 2px solid rgba(0,0,0,.3);
   display: flex; align-items: center; justify-content: center;
   font-size: .65rem; color: #fff; font-weight: bold;
-  cursor: grab;
 }
-.harvester-dot:active { cursor: grabbing }
-.harvester-dot.locked { cursor: not-allowed }
 .hidden { display: none }
 .error { color: #b00020; margin-top: .75rem }
 .ok { color: #006400; margin-top: .75rem }
@@ -154,4 +150,31 @@ pre { background: #f6f6f6; padding: .75rem; overflow: auto; max-height: 160px }
   background-position: center;
   display: inline-block;
 }
+.picker-backdrop {
+  position: fixed; inset: 0; z-index: 10;
+  background: rgba(0,0,0,.35);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+}
+.picker-backdrop.hidden { display: none }
+.picker {
+  background: #fff; border-radius: 10px; padding: 1rem;
+  width: 100%; max-width: 320px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.25);
+}
+.picker-title { font-weight: bold; margin: 0 0 .75rem }
+.picker-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1rem }
+.picker-row {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .5rem; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;
+}
+.picker-row input { width: 20px; height: 20px; margin: 0 }
+.picker-swatch {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid rgba(0,0,0,.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .7rem; color: #fff; font-weight: bold;
+}
+.picker-where { font-size: .85rem; color: #555 }
+#pickerDone { width: 100% }
 '

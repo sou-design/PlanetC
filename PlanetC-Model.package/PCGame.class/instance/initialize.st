@@ -5,7 +5,7 @@ initialize
 	server whenDataReceivedDo: [ :dict :client |
 		| type |
 		type := dict at: 'type'.
-		
+		harvestHistory := Dictionary new.
 		type = 'requestGridState' ifTrue: [ self broadcastBiomass ].
 		type = 'move' ifTrue: [
 		self cormasModel recordMove: (dict at: 'harvesterCells') for: (self agentFor: client).
@@ -14,4 +14,5 @@ initialize
 		type = 'protect' ifTrue: [
 		self cormasModel recordProtect: (dict at: 'cells').
 		self refreshCormasUI.
-		self broadcastProtection ] ]
+		self broadcastProtection ].
+		self handleGameMasterRequest: dict from: client ]

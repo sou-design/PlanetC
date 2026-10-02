@@ -1,4 +1,4 @@
-as yet unclassified
+harvest
 collectHarvest
 	| harvesters shuffled |
 	harvesters := self occupantsOfClass: PCHarvester.

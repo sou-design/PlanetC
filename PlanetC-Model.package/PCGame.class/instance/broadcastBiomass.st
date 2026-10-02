@@ -1,4 +1,4 @@
-initialization
+broadcast
 broadcastBiomass
 	server broadcast: (Dictionary new
 		at: 'type' put: 'biomass';

@@ -1,9 +1,11 @@
 initialization
 startGame
+	harvestHistory := IdentityDictionary new.
 	super startGame.
 	self broadcastBiomass.
 	self broadcastBirds.
 	self broadcastProtection.
 	self broadcastHarvesters.
 	self refreshCormasUI.
-	self startRoundTimer
+	roundProcess := [ ] forkNamed: 'Game started'.
+	Processor yield

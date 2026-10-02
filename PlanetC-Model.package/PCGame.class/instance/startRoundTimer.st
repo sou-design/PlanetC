@@ -1,4 +1,4 @@
-as yet unclassified
+game flow
 startRoundTimer
 	roundProcess := [
 		[ [ self cormasModel currentRound <= self cormasModel maxRounds ] whileTrue: [

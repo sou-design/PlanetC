@@ -1,4 +1,4 @@
-initialization
+game flow
 broadcastRound
 	server broadcast: (Dictionary new
 		at: 'type' put: 'round';

@@ -1,4 +1,4 @@
-as yet unclassified
+harvest
 applyPendingHarvest
 	biomassToApply >= 0 ifTrue: [
 		self biomassLevel: biomassToApply.
