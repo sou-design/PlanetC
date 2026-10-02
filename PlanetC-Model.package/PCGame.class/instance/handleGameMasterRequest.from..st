@@ -1,7 +1,6 @@
 game master
 handleGameMasterRequest: aDictionary from: aClient
-	
-	| type players model phase reply seconds |
+	| type players model reply seconds |
 	type := aDictionary at: 'type' ifAbsent: [ ^ self ].
 
 	type = 'gmLogin' ifTrue: [
@@ -22,16 +21,8 @@ handleGameMasterRequest: aDictionary from: aClient
 	aClient role = PCGameMasterRole ifFalse: [ ^ self ].
 	players := server clients reject: [ :c | c role = PCGameMasterRole ].
 	model := self cormasModel.
-	phase := roundProcess isNil
-		ifTrue: [ 'lobby' ]
-		ifFalse: [
-			roundProcess isTerminated
-				ifFalse: [ roundProcess name = 'Ranger turn' ifTrue: [ 'rangerTurn' ] ifFalse: [ 'householdsTurn' ] ]
-				ifTrue: [
-					roundProcess name = 'Ranger turn'
-						ifTrue: [ 'rangerDone' ]
-						ifFalse: [ model currentRound > model maxRounds ifTrue: [ 'ended' ] ifFalse: [ 'ready' ] ] ] ].
 	reply := Dictionary new at: 'type' put: type; yourself.
+
 	type = 'gmPlayers' ifTrue: [
 		reply
 			at: 'phase' put: phase;
@@ -48,6 +39,7 @@ handleGameMasterRequest: aDictionary from: aClient
 				at: 'round' put: model currentRound;
 				at: 'maxRounds' put: model maxRounds ].
 		^ aClient sendMessage: reply ].
+
 	type = 'gmGrid' ifTrue: [
 		phase = 'lobby' ifFalse: [ self broadcastBiomass; broadcastBirds; broadcastProtection; broadcastHarvesters ].
 		^ self ].
@@ -76,10 +68,12 @@ handleGameMasterRequest: aDictionary from: aClient
 			self startHouseholdsTurn: seconds.
 			^ aClient sendMessage: (reply at: 'result' put: 'ok'; yourself) ].
 		^ aClient sendMessage: (reply at: 'result' put: 'notReady'; yourself) ].
+
 	type = 'gmFinish' ifTrue: [
 		((phase = 'ready' or: [ phase = 'ended' ]) and: [ model currentRound > 1 ]) ifFalse: [
 			^ aClient sendMessage: (reply at: 'result' put: 'notReady'; yourself) ].
 		model maxRounds: model currentRound - 1.
+		phase := 'ended'.
 		server broadcast: (Dictionary new
 			at: 'type' put: 'gameOver';
 			at: 'rounds' put: model currentRound - 1;

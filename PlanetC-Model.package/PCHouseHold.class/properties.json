@@ -6,7 +6,8 @@
 	"pools" : [ ],
 	"classvars" : [ ],
 	"instvars" : [
-		"tile"
+		"tile",
+		"gains"
 	],
 	"name" : "PCHouseHold",
 	"type" : "normal"

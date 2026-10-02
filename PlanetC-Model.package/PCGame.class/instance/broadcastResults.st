@@ -7,7 +7,7 @@ broadcastResults
 		[ client role = PCGameMasterRole ifTrue: [ client sendMessage: results ].
 		client role = PCHouseHoldRole ifTrue: [
 			| gains |
-			gains := self harvestHistoryOf: (self agentFor: client).
+			gains := (self agentFor: client) gains.
 			client sendMessage: (Dictionary new
 				at: 'type' put: 'roundResult';
 				at: 'round' put: gains size;

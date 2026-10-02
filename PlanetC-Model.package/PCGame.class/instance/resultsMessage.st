@@ -6,7 +6,7 @@ resultsMessage
 		at: 'families' put: (self cormasModel households asArray withIndexCollect: [ :household :index |
 			| name gains |
 			name := self nameFor: household.
-			gains := self harvestHistoryOf: household.
+			gains := household gains.
 			Dictionary new
 				at: 'name' put: (name isEmpty ifTrue: [ 'Family ' , index printString ] ifFalse: [ name ]);
 				at: 'gains' put: gains asArray;

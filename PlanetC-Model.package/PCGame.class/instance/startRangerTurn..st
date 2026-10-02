@@ -2,8 +2,8 @@ game flow
 startRangerTurn: seconds
 	| round |
 	round := self cormasModel currentRound.
-	roundProcess := [
-		[ server broadcast: (Dictionary new
+	phase := 'rangerTurn'.
+	[ [ server broadcast: (Dictionary new
 			at: 'type' put: 'turn';
 			at: 'round' put: round;
 			at: 'turn' put: 'ranger';
@@ -16,4 +16,5 @@ startRangerTurn: seconds
 			at: 'turn' put: 'ranger';
 			yourself) ]
 			on: Error
-			do: [ :e | Transcript showCr: 'Ranger turn crashed: ', e messageText ] ] forkNamed: 'Ranger turn'
+			do: [ :e | Transcript showCr: 'Ranger turn crashed: ', e messageText ].
+	phase := 'rangerDone' ] forkNamed: 'Ranger turn'
