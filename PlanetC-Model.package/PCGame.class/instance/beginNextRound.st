@@ -6,4 +6,4 @@ beginNextRound
 		at: 'round' put: self cormasModel currentRound;
 		at: 'maxRounds' put: self cormasModel maxRounds;
 		yourself).
-	self broadcastBiomass; broadcastBirds; broadcastProtection; broadcastHarvesters; refreshCormasUI
+	self broadcastState

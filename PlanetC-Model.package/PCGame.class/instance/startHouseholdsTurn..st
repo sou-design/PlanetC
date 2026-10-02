@@ -20,7 +20,7 @@ startHouseholdsTurn: seconds
 		self incrementCurrentTimeStep.
 		model removeDestroyedEntities.
 		self recordData.
-		self broadcastBiomass; broadcastBirds; broadcastProtection; broadcastHarvesters; refreshCormasUI.
+		self broadcastState.
 		self broadcastResults.
 		server broadcast: (Dictionary new
 			at: 'type' put: 'roundEnded';
