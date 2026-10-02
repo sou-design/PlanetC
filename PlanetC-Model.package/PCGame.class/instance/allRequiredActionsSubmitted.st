@@ -1,9 +1,6 @@
 initialization
 allRequiredActionsSubmitted
-	| model activeHouseholds submitted |
-	model := self cormasModel.
-	activeHouseholds := (server clients select: [ :c | c role = PCHouseHoldRole ])
-		collect: [ :c | self agentFor: c ].
-	submitted := model submittedMoves.
-	^ activeHouseholds isNotEmpty
-		and: [ activeHouseholds allSatisfy: [ :h | submitted includesKey: h ] ]
+	| households submitted |
+	households := server householdClients collect: [ :c | server agentFor: c ].
+	submitted := self cormasModel submittedMoves.
+	^ households isNotEmpty and: [ households allSatisfy: [ :h | submitted includesKey: h ] ]

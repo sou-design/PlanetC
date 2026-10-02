@@ -7,7 +7,7 @@ broadcastHarvesters
 			counts := Dictionary new.
 			(c occupantsOfClass: PCHarvester) do: [ :h |
 				| key |
-				key := self nameFor: h household.
+				key := server nameFor: h household.
 				counts at: key put: (counts at: key ifAbsent: [ 0 ]) + 1 ].
 			counts associations collect: [ :assoc |
 				Dictionary new
