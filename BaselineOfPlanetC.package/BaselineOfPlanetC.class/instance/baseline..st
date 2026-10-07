@@ -7,8 +7,10 @@ baseline: spec
 			with: [ spec repository: 'github://cormas/cormas-game-server:main' ].
 
 		spec
-			package: 'PlanetC-Model'
-			with: [ spec requires: #('CormasGameServer') ];
+			package: 'PlanetC-Model';
 
 			package: 'PlanetC-Model-Tests'
-			with: [ spec requires: #('PlanetC-Model') ] ]
+			with: [ spec requires: #('PlanetC-Model') ];
+
+			package: 'PlanetC-Game'
+			with: [ spec requires: #('PlanetC-Model' 'CormasGameServer') ] ]

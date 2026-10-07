@@ -7,7 +7,8 @@
 	"classvars" : [ ],
 	"instvars" : [
 		"collectedBiomass",
-		"household"
+		"household",
+		"gains"
 	],
 	"name" : "PCHarvester",
 	"type" : "normal"
