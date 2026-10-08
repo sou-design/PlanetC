@@ -1,0 +1,14 @@
+{
+	"commentStamp" : "",
+	"super" : "CMGame",
+	"category" : "PlanetC-Model-Game",
+	"classinstvars" : [ ],
+	"pools" : [ ],
+	"classvars" : [ ],
+	"instvars" : [
+		"phase",
+		"runnerPresenter"
+	],
+	"name" : "PCGame",
+	"type" : "normal"
+}

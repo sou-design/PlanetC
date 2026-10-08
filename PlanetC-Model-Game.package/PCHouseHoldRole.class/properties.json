@@ -1,0 +1,13 @@
+{
+	"commentStamp" : "",
+	"super" : "CMGameRole",
+	"category" : "PlanetC-Model-Game",
+	"classinstvars" : [ ],
+	"pools" : [ ],
+	"classvars" : [ ],
+	"instvars" : [
+		"household"
+	],
+	"name" : "PCHouseHoldRole",
+	"type" : "normal"
+}

@@ -1,0 +1,13 @@
+{
+	"commentStamp" : "",
+	"super" : "CMGameServer",
+	"category" : "PlanetC-Model-Game",
+	"classinstvars" : [ ],
+	"pools" : [ ],
+	"classvars" : [ ],
+	"instvars" : [
+		"game"
+	],
+	"name" : "PCGameServer",
+	"type" : "normal"
+}

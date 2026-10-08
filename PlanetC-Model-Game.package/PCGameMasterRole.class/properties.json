@@ -1,0 +1,11 @@
+{
+	"commentStamp" : "",
+	"super" : "CMGameRole",
+	"category" : "PlanetC-Model-Game",
+	"classinstvars" : [ ],
+	"pools" : [ ],
+	"classvars" : [ ],
+	"instvars" : [ ],
+	"name" : "PCGameMasterRole",
+	"type" : "normal"
+}

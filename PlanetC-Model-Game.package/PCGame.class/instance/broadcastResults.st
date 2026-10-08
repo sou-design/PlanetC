@@ -1,0 +1,19 @@
+results
+broadcastResults
+	| results |
+	results := self resultsMessage.
+	server clients do: [ :client |
+		[ client role = PCGameMasterRole ifTrue: [ client sendMessage: results ].
+		client role = PCHouseHoldRole ifTrue: [
+			| gains |
+			gains := (server agentFor: client) gains.
+			client sendMessage: (Dictionary new
+				at: 'type' put: 'roundResult';
+				at: 'round' put: gains size;
+				at: 'gain' put: (gains ifEmpty: [ 0 ] ifNotEmpty: [ :g | g last ]);
+				at: 'total' put: (gains inject: 0 into: [ :sum :each | sum + each ]);
+				at: 'harvesters' put: (self harvesterResultsFor: (server agentFor: client));
+				yourself).
+			client sendMessage: results ] ]
+			on: Error
+			do: [ :e | Transcript showCr: 'Could not send results to ', client name printString, ': ', e messageText ] ]
