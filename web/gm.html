@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Game Master</title>
+<link rel="stylesheet" href="/gm.css">
+</head>
+<body>
+
+<section id="gmLogin">
+  <h1>Game Master</h1>
+  <form id="gmForm">
+    <label>Name
+      <input id="gmName" type="text" required minlength="2" maxlength="40" autocomplete="name" />
+    </label>
+    <label>Organization
+      <input id="gmOrg" type="text" required minlength="2" maxlength="60" autocomplete="organization" />
+    </label>
+    <label>Game master key
+      <input id="gmSecret" type="password" required autocomplete="current-password" />
+    </label>
+    <button type="submit">Continue</button>
+    <p id="gmError"></p>
+  </form>
+</section>
+
+<section id="gmDashboard" class="hidden">
+  <header id="gmHeader">
+    <span id="gmIdentity"></span>
+    <div id="gmHeaderRight">
+      <span id="gmConnection">Connecting...</span>
+      <button type="button" id="gmSignOut">Sign out</button>
+    </div>
+  </header>
+  <nav id="gmTabs" role="tablist">
+    <button type="button" role="tab" id="tabLobby" aria-selected="true" aria-controls="panelLobby">Players &amp; QR code</button>
+    <button type="button" role="tab" id="tabGame" aria-selected="false" aria-controls="panelGame">Grid</button>
+    <button type="button" role="tab" id="tabResults" aria-selected="false" aria-controls="panelResults">Results</button>
+  </nav>
+  <main id="gmMain">
+    <p id="gmAlert" class="hidden" role="alert"></p>
+    <div id="roundPanel" class="hidden">
+      <p id="roundTitle"></p>
+      <p id="roundPhase"></p>
+
+      <div id="roundSetup" class="hidden">
+        <label id="turnField">
+          <span id="turnFieldText"></span>
+          <input id="turnSeconds" type="number" min="5" max="3600" step="5" />
+        </label>
+        <div id="roundButtons">
+          <button type="button" id="proceedBtn">Proceed</button>
+          <button type="button" id="finishBtn" class="hidden">Finish the game</button>
+        </div>
+      </div>
+    </div>
+
+    <section id="panelLobby" role="tabpanel" aria-labelledby="tabLobby">
+      <h2>Join the game</h2>
+      <div id="joinPanel">
+        <div id="joinQr" aria-label="QR code to join the game"></div>
+        <div id="joinInfo">
+          <p id="joinUrlText"></p>
+          <label id="joinAddressLabel" for="joinAddressSelect" class="hidden small">This laptop has several network addresses. Pick the one on the players network:</label>
+          <select id="joinAddressSelect" class="hidden"></select>
+          <label for="joinUrlInput" class="small">Join address (edit if players cannot reach it)</label>
+          <input id="joinUrlInput" type="text" spellcheck="false" />
+          <p id="joinHint"></p>
+        </div>
+      </div>
+      <h2>Players</h2>
+      <p id="playerSummary"></p>
+      <p id="playerEmpty">No players have joined yet.</p>
+      <ul id="playerList" class="hidden"></ul>
+      <div id="startPanel">
+        <button type="button" id="startBtn" disabled>Start the game</button>
+        <p id="startHint"></p>
+      </div>
+    </section>
+
+    <section id="panelGame" role="tabpanel" aria-labelledby="tabGame" class="hidden">
+      <p id="gameNotStarted">The grid appears when the game starts.</p>
+
+      <section id="gamePanel" class="hidden">
+        <div id="gameBar">
+          <h2>Grid</h2>
+          <span id="gameStatus"></span>
+          <button type="button" id="birdsBtn" aria-pressed="false">Show birds</button>
+          <button type="button" id="movesBtn" class="hidden">Modify harvesters</button>
+        </div>
+        <div id="gmGrid"></div>
+        <div id="gameLegend"></div>
+        <div id="movesPanel" class="hidden">
+          <h3>Harvesters of each family</h3>
+          <p>Change where the harvesters of a family go this round, then click Save. Players see the change on the grid.</p>
+          <div id="movesList"></div>
+        </div>
+      </section>
+    </section>
+    <section id="panelResults" role="tabpanel" aria-labelledby="tabResults" class="hidden">
+      <h2>Family results</h2>
+      <p id="resultsEmpty">Results appear at the end of each round.</p>
+      <div id="resultsWrap" class="hidden">
+        <p id="resultsSummary"></p>
+        <div id="resultsScroll"><table id="resultsTable"></table></div>
+        <p id="resultsNote">Gain = biomass collected by the family harvesters in the round.</p>
+      </div>
+    </section>
+  </main>
+</section>
+
+<script>
+
+window.addEventListener("error", function (e) {
+  var alertEl = document.getElementById("gmAlert");
+  alertEl.textContent = "Script error: " + e.message + (e.lineno ? " (line " + e.lineno + ")" : "");
+  alertEl.classList.remove("hidden");
+});
+</script>
+<script src="/qrcode.js"></script>
+<script src="/gm.js"></script>
+</body>
+</html>
