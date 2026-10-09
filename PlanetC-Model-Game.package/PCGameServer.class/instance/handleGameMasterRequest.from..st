@@ -4,9 +4,6 @@ handleGameMasterRequest: aDictionary from: aClient
 	type := aDictionary at: 'type'.
 
 	type = 'gmLogin' ifTrue: [
-		(aDictionary at: 'secret' ifAbsent: [ '' ]) = PCGameMasterRole gameMasterSecret ifFalse: [
-			aClient sendMessage: (Dictionary new at: 'type' put: 'gmRejected'; yourself).
-			^ aClient disconnect ].
 		(self clients select: [ :c | c role = PCGameMasterRole and: [ c ~~ aClient and: [ c isConnected ] ] ])
 			do: [ :previous |
 				previous sendMessage: (Dictionary new at: 'type' put: 'gmReplaced'; yourself).
@@ -70,6 +67,8 @@ handleGameMasterRequest: aDictionary from: aClient
 			toPlayerNamed: (aDictionary at: 'player' ifAbsent: [ '' ])) ].
 
 	type = 'gmFinish' ifTrue: [ ^ answer value: game finish ].
+
+	type = 'gmShowBirds' ifTrue: [ ^ self broadcast: (Dictionary new at: 'type' put: 'showBirds'; at: 'show' put: (aDictionary at: 'show'); yourself) ].
 
 	type = 'gmMove' ifTrue: [
 		^ answer value: (game

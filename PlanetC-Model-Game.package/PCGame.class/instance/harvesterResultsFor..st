@@ -1,4 +1,4 @@
-as yet unclassified
+results
 harvesterResultsFor: aHousehold
 	^ aHousehold harvesters withIndexCollect: [ :harvester :index |
 		Dictionary new

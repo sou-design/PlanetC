@@ -12,7 +12,10 @@ proceed: seconds
 		self beginNextRound.
 		model currentRound = 1
 			ifTrue: [ self startHouseholdsTurn: seconds ]
-			ifFalse: [ self startRangerTurn: seconds ].
+			ifFalse: [ phase := 'newBiomass' ].
+		^ 'ok' ].
+	phase = 'newBiomass' ifTrue: [
+		self startRangerTurn: seconds.
 		^ 'ok' ].
 	phase = 'rangerDone' ifFalse: [ ^ 'notReady' ].
 	self startHouseholdsTurn: seconds.

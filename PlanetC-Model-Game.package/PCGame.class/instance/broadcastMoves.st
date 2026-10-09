@@ -1,4 +1,4 @@
-as yet unclassified
+broadcast
 broadcastMoves
 	| model message |
 	model := self cormasModel.

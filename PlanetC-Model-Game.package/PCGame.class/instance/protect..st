@@ -1,4 +1,4 @@
-as yet unclassified
+game flow
 protect: cellIds
 	self cormasModel recordProtect: cellIds.
 	self refreshCormasUI.

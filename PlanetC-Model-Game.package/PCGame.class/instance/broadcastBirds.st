@@ -9,5 +9,4 @@ broadcastBirds
 				at: 'newborns' put: ((c occupantsOfClass: PCBird) count: [ :b | b state = #newborn ]);
 				yourself ]) asArray;
 		yourself.
-	(server clients reject: [ :client | client role = PCHouseHoldRole ])
-		do: [ :client | client sendMessage: message ]
+	server broadcast: message
