@@ -11,14 +11,11 @@
 <section id="gmLogin">
   <h1>Game Master</h1>
   <form id="gmForm">
-    <label>Name
-      <input id="gmName" type="text" required minlength="2" maxlength="40" autocomplete="name" />
-    </label>
     <label>Organization
       <input id="gmOrg" type="text" required minlength="2" maxlength="60" autocomplete="organization" />
     </label>
-    <label>Game master key
-      <input id="gmSecret" type="password" required autocomplete="current-password" />
+    <label>Description (optional)
+      <input id="gmDesc" type="text" maxlength="120" autocomplete="off" />
     </label>
     <button type="submit">Continue</button>
     <p id="gmError"></p>

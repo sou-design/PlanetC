@@ -19,6 +19,7 @@ gameEl.innerHTML = `
   <div id="resultCard" class="hidden">
     <p id="resultGain"></p>
     <p id="resultTotal"></p>
+    <div id="memberScroll" class="hidden"><table id="memberTable"></table></div>
   </div>
 `;
 document.body.appendChild(gameEl);
@@ -41,6 +42,8 @@ const pickerDone = byId("pickerDone");
 const resultCard = byId("resultCard");
 const resultGain = byId("resultGain");
 const resultTotal = byId("resultTotal");
+const memberScroll = byId("memberScroll");
+const memberTable = byId("memberTable");
 let pickerCellId = null;
 
 const COLUMNS = 5;
@@ -344,8 +347,12 @@ function applyHarvesters(values) {
   });
 }
 
+let birdsVisible = false;
+let lastBirds = [];
 function applyBirds(values) {
+  lastBirds = values;
   forEachCell(values, (cell, entry) => {
+    if (myRole === "Household" && !birdsVisible) entry = { adults: 0, newborns: 0 };
     let adultIcon = cell.querySelector(".bird-icon-plain");
     if (entry.adults > 0) {
       if (!adultIcon) {
@@ -368,6 +375,57 @@ function applyBirds(values) {
       newbornChip.remove();
     }
   });
+}
+
+function renderMemberTable(members, round) {
+  const rounds = Math.max(round || 0, ...members.map(h => (h.gains || []).length));
+  memberTable.innerHTML = "";
+  if (!members.length || rounds === 0) {
+    memberScroll.classList.add("hidden");
+    return;
+  }
+  const addCell = (row, tag, text, className) => {
+    const cell = document.createElement(tag);
+    cell.textContent = text;
+    if (className) cell.className = className;
+    row.appendChild(cell);
+    return cell;
+  };
+  const isCurrent = r => r === rounds - 1 ? "current" : "";
+
+  const head = memberTable.createTHead().insertRow();
+  addCell(head, "th", "Member");
+  for (let r = 0; r < rounds; r++) addCell(head, "th", "R" + (r + 1), isCurrent(r)).title = "Round " + (r + 1);
+  addCell(head, "th", "Total", "total");
+
+  const body = memberTable.createTBody();
+  const roundSums = new Array(rounds).fill(0);
+  let familyTotal = 0;
+  members.forEach(h => {
+    const row = body.insertRow();
+    const nameCell = addCell(row, "td", "");
+    const token = document.createElement("span");
+    token.className = "member-token";
+    token.style.background = myColor();
+    token.textContent = h.name;
+    nameCell.appendChild(token);
+    for (let r = 0; r < rounds; r++) {
+      const value = (h.gains || [])[r] ?? 0;
+      roundSums[r] += value;
+      addCell(row, "td", value, isCurrent(r));
+    }
+    const total = h.total ?? (h.gains || []).reduce((a, b) => a + b, 0);
+    familyTotal += total;
+    addCell(row, "td", total, "total");
+  });
+
+  const foot = memberTable.createTFoot().insertRow();
+  addCell(foot, "td", "Family");
+  roundSums.forEach((sum, r) => addCell(foot, "td", sum, isCurrent(r)));
+  addCell(foot, "td", familyTotal, "total");
+
+  memberScroll.classList.remove("hidden");
+  memberScroll.scrollLeft = memberScroll.scrollWidth;
 }
 
 function parseServerMessage(raw) {
@@ -408,9 +466,11 @@ const handlers = {
     resetRoundSelections();
     unlock();
     document.querySelectorAll(".harvester-dot").forEach(d => d.classList.remove("locked"));
-    pauseTurns();
+    if (m.round > 1) pauseTurns("Round " + m.round + ": new biomass", "Look at the new biomass on the grid. The game master will start the round.");
+    else pauseTurns();
   },
   turn(m) {
+    resultCard.classList.add("hidden");
 
     currentRound = m.round;
     currentTurn = m.turn;
@@ -429,6 +489,7 @@ const handlers = {
     myTotal = m.total;
     resultGain.textContent = "Round " + m.round + ": your family harvested " + m.gain;
     resultTotal.textContent = "Total since the start: " + m.total;
+    renderMemberTable(m.harvesters || [], m.round);
     resultCard.classList.remove("hidden");
   },
   gameOver() {
@@ -439,6 +500,7 @@ const handlers = {
   },
   biomass(m) { applyBiomass(m.values); },
   birds(m) { applyBirds(m.values); },
+  showBirds(m) { birdsVisible = m.show; applyBirds(lastBirds); },
   protection(m) { applyProtection(m.values); },
   harvesters(m) { applyHarvesters(m.values); },
   rejected(m) {

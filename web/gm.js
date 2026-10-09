@@ -2,9 +2,8 @@ const byId = id => document.getElementById(id);
 const loginEl = byId("gmLogin");
 const dashboardEl = byId("gmDashboard");
 const form = byId("gmForm");
-const nameInput = byId("gmName");
 const orgInput = byId("gmOrg");
-const secretInput = byId("gmSecret");
+const descInput = byId("gmDesc");
 const errorEl = byId("gmError");
 const identityEl = byId("gmIdentity");
 const connectionEl = byId("gmConnection");
@@ -21,9 +20,8 @@ const startBtn = byId("startBtn");
 const startHint = byId("startHint");
 
 const PLAYERS_REFRESH_MS = 2000;
-let gmName = "";
 let gmOrg = "";
-let gmSecret = "";
+let gmDesc = "";
 let signedIn = false;
 let stopped = false;
 let accepted = false;
@@ -44,10 +42,10 @@ function forget(store, key) { try { store.removeItem(key); } catch (e) {} }
 function showDashboard() {
   signedIn = true;
   stopped = false;
-  identityEl.textContent = gmName + " \u00b7 " + gmOrg;
+  identityEl.textContent = gmDesc ? gmOrg + " \u00b7 " + gmDesc : gmOrg;
   loginEl.classList.add("hidden");
   dashboardEl.classList.remove("hidden");
-  document.title = "Game Master - " + gmName;
+  document.title = "Game Master - " + gmOrg;
   renderPlayers([]);
   updateStartButton([]);
   if (!joinUrlEdited) showJoinUrl(guessJoinUrl(null, null));
@@ -61,7 +59,7 @@ function showLogin(message) {
   loginEl.classList.remove("hidden");
   document.title = "Game Master";
   errorEl.textContent = message || "";
-  (nameInput.value ? secretInput : nameInput).focus();
+  orgInput.focus();
 }
 
 function roleSelect(player, roles) {
@@ -363,7 +361,8 @@ function renderRound() {
   finishBtn.disabled = game.waiting || !accepted;
 
   const reviewing = game.phase === "householdsDone";
-  byId("turnField").classList.toggle("hidden", reviewing);
+  const showBiomassNext = (game.phase === "ready" && game.round > 1) || game.phase === "ended";
+  byId("turnField").classList.toggle("hidden", reviewing || showBiomassNext);
   movesBtn.classList.toggle("hidden", !reviewing);
   if (!reviewing) { movesPanel.classList.add("hidden"); movesBtn.textContent = "Modify harvesters"; }
 
@@ -391,21 +390,26 @@ function renderRound() {
     setPhaseText("The households have played. You can modify their harvesters, then resolve the round.");
     proceedBtn.textContent = game.waiting ? "Resolving..." : "Resolve round " + next;
     finishBtn.classList.add("hidden");
+  } else if (game.phase === "newBiomass") {
+    roundTitle.textContent = roundLabel(next) + ": new biomass";
+    setPhaseText("Look at the new biomass with the players. Set the time of the park manager turn, then click Proceed.");
+    proceedBtn.textContent = game.waiting ? "Starting..." : "Start the park manager turn";
+    finishBtn.classList.add("hidden");
   } else if (game.phase === "ready") {
     roundTitle.textContent = next === 1 ? "Ready to play" : "Round " + (next - 1) + " is over";
     setPhaseText(next === 1
       ? "Round 1 has no park manager turn. Set the time of the households turn, then click Proceed."
-      : "Round " + next + " starts with the park manager turn. Set its time, then click Proceed.");
+      : "Show the new biomass to the players before round " + next + " starts.");
     proceedBtn.textContent = game.waiting ? "Starting..."
-      : (turn === "ranger" ? "Start round " + next + ": park manager turn" : "Start round " + next + ": households turn");
+      : (turn === "ranger" ? "Show the new biomass" : "Start round " + next + ": households turn");
     finishBtn.classList.toggle("hidden", next === 1);
   } else {
     roundTitle.textContent = game.over
       ? "Game over after " + (next - 1) + (next - 1 === 1 ? " round" : " rounds")
       : "All planned rounds are played (" + (next - 1) + ")";
     setPhaseText(game.over
-      ? "Players see the end of the game. You can still add a round: set the time of its park manager turn."
-      : "Finish the game, or add an extra round: set the time of its park manager turn.");
+      ? "Players see the end of the game. You can still add a round."
+      : "Finish the game, or add an extra round.");
     proceedBtn.textContent = game.waiting ? "Starting..." : "Play an extra round (round " + next + ")";
     finishBtn.classList.toggle("hidden", game.over);
   }
@@ -560,6 +564,7 @@ birdsBtn.addEventListener("click", () => {
   birdsBtn.setAttribute("aria-pressed", String(showBirds));
   birdsBtn.textContent = showBirds ? "Hide birds" : "Show birds";
   applyBirds();
+  send({ type: "gmShowBirds", show: showBirds });
 });
 
 movesBtn.addEventListener("click", () => {
@@ -647,12 +652,6 @@ const handlers = {
     heartbeat = setInterval(() => send({ type: "gmPlayers" }), PLAYERS_REFRESH_MS);
     renderRound();
   },
-  gmRejected() {
-    stopped = true;
-    forget(sessionStorage, "cm.gm.secret");
-    secretInput.value = "";
-    showLogin("Wrong game master key.");
-  },
   gmReplaced() {
     stopped = true;
     accepted = false;
@@ -691,7 +690,7 @@ const handlers = {
     gameState = "waiting";
     updateStartButton();
     if (m.result === "alreadyStarted") {
-      showAlert("Cormas says this game has already started. If that is a previous game, open a new game in Cormas (or restart the server), then log in again.");
+      showAlert("This game has already started.");
     } else {
       startHint.textContent = "The game could not start: every player needs a role. Choose a role for each player in the list above.";
       startHint.className = "warning";
@@ -703,10 +702,12 @@ const handlers = {
   },
   gameStarted() { markGameRunning(); },
   round(m) {
-    Object.assign(game, { phase: "ready", round: m.round, over: false, startedAt: 0 });
+    Object.assign(game, { phase: m.round === 1 ? "ready" : "newBiomass", round: m.round, over: false, startedAt: 0 });
+    if (m.round > 1) game.waiting = false;
     if (m.maxRounds != null) game.maxRounds = m.maxRounds;
     gameStatus.textContent = roundLabel(m.round);
     markGameRunning();
+    renderRound();
   },
   turn(m) {
     Object.assign(game, { phase: m.turn === "ranger" ? "rangerTurn" : "householdsTurn", round: m.round,
@@ -773,8 +774,8 @@ function connect() {
 
   socket.addEventListener("open", () => {
 
-    socket.send(JSON.stringify({ type: "bonjour", name: "[GM] " + gmName }));
-    socket.send(JSON.stringify({ type: "gmLogin", secret: gmSecret }));
+    socket.send(JSON.stringify({ type: "bonjour", name: "[GM]" }));
+    socket.send(JSON.stringify({ type: "gmLogin" }));
   });
 
   socket.addEventListener("message", (ev) => {
@@ -810,33 +811,29 @@ function disconnect() {
 
 form.addEventListener("submit", (e) => {
   e.preventDefault();
-  gmName = nameInput.value.trim();
   gmOrg = orgInput.value.trim();
-  gmSecret = secretInput.value;
-  if (!gmName || !gmOrg || !gmSecret) {
-    errorEl.textContent = "Please enter your name, organization and game master key.";
+  gmDesc = descInput.value.trim();
+  if (!gmOrg) {
+    errorEl.textContent = "Please enter your organization.";
     return;
   }
-  save(localStorage, "cm.gm.name", gmName);
   save(localStorage, "cm.gm.org", gmOrg);
-  save(sessionStorage, "cm.gm.secret", gmSecret);
+  save(localStorage, "cm.gm.desc", gmDesc);
   showDashboard();
 });
 
 byId("gmSignOut").addEventListener("click", () => {
-  forget(localStorage, "cm.gm.name");
   forget(localStorage, "cm.gm.org");
-  forget(sessionStorage, "cm.gm.secret");
+  forget(localStorage, "cm.gm.desc");
   form.reset();
   showLogin();
 });
 
-nameInput.value = load(localStorage, "cm.gm.name");
 orgInput.value = load(localStorage, "cm.gm.org");
-gmSecret = load(sessionStorage, "cm.gm.secret");
-if (nameInput.value && orgInput.value && gmSecret) {
-  gmName = nameInput.value;
+descInput.value = load(localStorage, "cm.gm.desc");
+if (orgInput.value) {
   gmOrg = orgInput.value;
+  gmDesc = descInput.value;
   showDashboard();
 } else {
   showLogin();

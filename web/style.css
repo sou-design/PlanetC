@@ -143,3 +143,19 @@ pre { background: #f6f6f6; padding: .75rem; overflow: auto; max-height: 160px }
               border: 1px solid #b7dcbc; color: #1d4d27 }
 #resultGain { margin: 0 0 .25rem; font-size: 1.15rem; font-weight: 600 }
 #resultTotal { margin: 0 }
+#memberScroll { margin-top: .75rem; overflow-x: auto; background: #fff;
+                border: 1px solid #b7dcbc; border-radius: 6px }
+#memberTable { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; color: #222 }
+#memberTable th, #memberTable td { padding: .4rem .55rem; text-align: right; white-space: nowrap;
+                                   border-bottom: 1px solid #eee }
+#memberTable th:first-child, #memberTable td:first-child { text-align: left }
+#memberTable thead th { background: #f4f4f4; font-size: .8rem; color: #444; font-weight: 600 }
+#memberTable .current { background: #eef7ef; font-weight: 600 }
+#memberTable .total { font-weight: 700 }
+#memberTable tfoot td { border-top: 2px solid #b7dcbc; border-bottom: none; font-weight: 600 }
+.member-token {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid rgba(0,0,0,.3);
+  font-size: .7rem; color: #fff; font-weight: bold;
+}
