@@ -1,0 +1,18 @@
+{
+	"commentStamp" : "",
+	"super" : "TestCase",
+	"category" : "PlanetC-Model-Tests",
+	"classinstvars" : [ ],
+	"pools" : [ ],
+	"classvars" : [ ],
+	"instvars" : [
+		"game",
+		"model",
+		"gm",
+		"alice",
+		"bruno",
+		"rose"
+	],
+	"name" : "PCGameTestCase",
+	"type" : "normal"
+}

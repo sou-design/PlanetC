@@ -1,0 +1,16 @@
+{
+	"commentStamp" : "",
+	"super" : "Object",
+	"category" : "PlanetC-Model-Tests",
+	"classinstvars" : [ ],
+	"pools" : [ ],
+	"classvars" : [ ],
+	"instvars" : [
+		"name",
+		"role",
+		"messages",
+		"connected"
+	],
+	"name" : "PCFakeClient",
+	"type" : "normal"
+}
