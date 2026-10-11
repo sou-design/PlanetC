@@ -1,0 +1,15 @@
+{
+	"commentStamp" : "",
+	"super" : "CMGameServer",
+	"category" : "PlanetC-Model-Game-Data",
+	"classinstvars" : [ ],
+	"pools" : [ ],
+	"classvars" : [ ],
+	"instvars" : [
+		"folder",
+		"gameId",
+		"sessionId"
+	],
+	"name" : "PCDataCollector",
+	"type" : "normal"
+}

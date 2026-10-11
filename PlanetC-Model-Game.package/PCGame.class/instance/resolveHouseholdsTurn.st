@@ -14,7 +14,8 @@ resolveHouseholdsTurn
 		at: 'type' put: 'roundEnded';
 		at: 'round' put: round;
 		at: 'maxRounds' put: model maxRounds;
-		yourself) ]
+		yourself).
+			self saveData: [ recorder saveRound: round of: self ]]
 		on: Error
 		do: [ :e | Transcript showCr: 'Round resolution crashed: ', e messageText ].
 	phase := model currentRound > model maxRounds
