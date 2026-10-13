@@ -286,6 +286,13 @@ function renderResults(families, rounds) {
       td.textContent = value;
       if (i === cells.length - 1) td.className = "total";
     });
+    (family.harvesters || []).forEach(h => {
+      const member = body.insertRow();
+      member.className = "member";
+      ["", h.name]
+        .concat(Array.from({ length: played }, (_, i) => (h.gains || [])[i] ?? "-"), [h.total])
+        .forEach(value => { member.insertCell().textContent = value; });
+    });
   });
   const leaders = sorted.filter(f => f.total === best).map(f => f.name);
   resultsSummary.textContent = "After " + played + (played === 1 ? " round" : " rounds") + ": "
@@ -637,6 +644,24 @@ function send(message) {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
 }
 
+function makeTable(headers, rows) {
+  const table = document.createElement("table");
+  const head = table.createTHead().insertRow();
+  headers.forEach(text => { head.appendChild(document.createElement("th")).textContent = text; });
+  const body = table.createTBody();
+  rows.forEach(values => {
+    const row = body.insertRow();
+    values.forEach(value => { row.insertCell().textContent = value; });
+  });
+  return table;
+}
+
+function heading(text) {
+  const h3 = document.createElement("h3");
+  h3.textContent = text;
+  return h3;
+}
+
 const handlers = {
   gmAccepted(m) {
     accepted = true;
@@ -738,6 +763,11 @@ const handlers = {
     if (m.rounds != null) { game.round = m.rounds + 1; game.maxRounds = m.rounds; }
     gameStatus.textContent = "Game over";
     renderRound();
+    if (m.families) renderResults(m.families, m.rounds);
+    byId("rangerResults").replaceChildren(heading("Ranger results"),
+      makeTable(["Round", "Protected zones", "Newborn birds"],
+        (m.ranger || []).map(r => [r.round, r.protected.join(", ") || "-", r.newborns])));
+    selectTab("results");
   },
   gmProceed(m) {
     if (m.result === "ok") return;

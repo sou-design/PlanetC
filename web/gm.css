@@ -70,6 +70,8 @@ body { font-family: system-ui, sans-serif; margin: 0; background: #fafafa; color
 #resultsTable td.total { font-weight: 700 }
 #resultsTable tr.leader td { background: #eef7ef }
 #resultsTable tr:last-child td { border-bottom: none }
+#resultsTable tr.member td { color: #666; font-size: .85rem; padding-top: .3rem; padding-bottom: .3rem }
+#resultsTable tr.member td:nth-child(2) { padding-left: 1.6rem }
 
 #gameNotStarted { color: #666 }
 #roundPanel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1rem; margin-bottom: 1rem }
@@ -117,3 +119,7 @@ body { font-family: system-ui, sans-serif; margin: 0; background: #fafafa; color
 .move-name i { width: .8rem; height: .8rem; border-radius: 2px; display: inline-block }
 .small { font-size: .85rem }
 #gameBar h2 { margin: 0 }
+
+#rangerResults table { border-collapse: collapse; width: 100%; background: #fff }
+#rangerResults th, #rangerResults td { padding: .5rem .7rem; border-bottom: 1px solid #eee; text-align: right }
+#rangerResults th:first-child, #rangerResults td:first-child { text-align: left }

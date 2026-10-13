@@ -2,6 +2,7 @@ const gameEl = document.createElement("div");
 gameEl.id = "game";
 gameEl.className = "hidden";
 gameEl.innerHTML = `
+  <p id="roleLine"></p>
   <p id="instructions">Waiting for the round to begin...</p>
   <div class="harvester-tray hidden" id="tray"></div>
   <div class="grid" id="grid"></div>
@@ -21,12 +22,15 @@ gameEl.innerHTML = `
     <p id="resultTotal"></p>
     <div id="memberScroll" class="hidden"><table id="memberTable"></table></div>
   </div>
+  <div id="finalResults" class="hidden"></div>
 `;
 document.body.appendChild(gameEl);
 
 const byId = id => document.getElementById(id);
 const nameInput = byId("name");
 const msg = byId("msg");
+const joinTitle = byId("joinTitle");
+const roleLine = byId("roleLine");
 const loginEl = byId("login");
 const gridEl = byId("grid");
 const trayEl = byId("tray");
@@ -44,6 +48,7 @@ const resultGain = byId("resultGain");
 const resultTotal = byId("resultTotal");
 const memberScroll = byId("memberScroll");
 const memberTable = byId("memberTable");
+const finalResults = byId("finalResults");
 let pickerCellId = null;
 
 const COLUMNS = 5;
@@ -61,7 +66,6 @@ let turnEndsAt = null;
 let reconnectAttempts = 0;
 let myName = null;
 let countdownInterval = null;
-let myTotal = null;
 const harvesterPlacement = new Array(HARVESTERS).fill(null);
 const protectedZones = new Set();
 
@@ -83,12 +87,17 @@ function updateTrayColors() {
   document.querySelectorAll(".harvester-dot").forEach(d => d.style.background = color);
 }
 
+let msgTimer = null;
 function show(kind, text) {
+  clearTimeout(msgTimer);
   msg.className = kind;
   msg.textContent = text;
+  // During the game, a message disappears after a few seconds
+  if (myRole) msgTimer = setTimeout(() => { msg.textContent = ""; }, 4000);
 }
 
 function showGame() {
+  joinTitle.classList.add("hidden");
   loginEl.classList.add("hidden");
   gameEl.classList.remove("hidden");
 }
@@ -378,9 +387,8 @@ function applyBirds(values) {
 }
 
 function renderMemberTable(members, round) {
-  const rounds = Math.max(round || 0, ...members.map(h => (h.gains || []).length));
   memberTable.innerHTML = "";
-  if (!members.length || rounds === 0) {
+  if (!members.length) {
     memberScroll.classList.add("hidden");
     return;
   }
@@ -391,16 +399,12 @@ function renderMemberTable(members, round) {
     row.appendChild(cell);
     return cell;
   };
-  const isCurrent = r => r === rounds - 1 ? "current" : "";
 
   const head = memberTable.createTHead().insertRow();
   addCell(head, "th", "Member");
-  for (let r = 0; r < rounds; r++) addCell(head, "th", "R" + (r + 1), isCurrent(r)).title = "Round " + (r + 1);
-  addCell(head, "th", "Total", "total");
+  addCell(head, "th", "Round " + round, "current");
 
   const body = memberTable.createTBody();
-  const roundSums = new Array(rounds).fill(0);
-  let familyTotal = 0;
   members.forEach(h => {
     const row = body.insertRow();
     const nameCell = addCell(row, "td", "");
@@ -409,23 +413,14 @@ function renderMemberTable(members, round) {
     token.style.background = myColor();
     token.textContent = h.name;
     nameCell.appendChild(token);
-    for (let r = 0; r < rounds; r++) {
-      const value = (h.gains || [])[r] ?? 0;
-      roundSums[r] += value;
-      addCell(row, "td", value, isCurrent(r));
-    }
-    const total = h.total ?? (h.gains || []).reduce((a, b) => a + b, 0);
-    familyTotal += total;
-    addCell(row, "td", total, "total");
+    addCell(row, "td", h.gain ?? 0, "current");
   });
 
   const foot = memberTable.createTFoot().insertRow();
   addCell(foot, "td", "Family");
-  roundSums.forEach((sum, r) => addCell(foot, "td", sum, isCurrent(r)));
-  addCell(foot, "td", familyTotal, "total");
+  addCell(foot, "td", members.reduce((sum, h) => sum + (h.gain ?? 0), 0), "current");
 
   memberScroll.classList.remove("hidden");
-  memberScroll.scrollLeft = memberScroll.scrollWidth;
 }
 
 function parseServerMessage(raw) {
@@ -447,22 +442,47 @@ function pauseTurns(status, text) {
   if (text != null) instructions.textContent = text;
 }
 
+function makeTable(headers, rows) {
+  const table = document.createElement("table");
+  const head = table.createTHead().insertRow();
+  headers.forEach(text => { head.appendChild(document.createElement("th")).textContent = text; });
+  const body = table.createTBody();
+  rows.forEach(r => {
+    // A row is an array of values, or { cells, className } to style it
+    const row = body.insertRow();
+    if (r.className) row.className = r.className;
+    (Array.isArray(r) ? r : r.cells).forEach(value => { row.insertCell().textContent = value; });
+  });
+  return table;
+}
+
+function heading(text) {
+  const h3 = document.createElement("h3");
+  h3.textContent = text;
+  return h3;
+}
+
 const handlers = {
   registered(m) {
     localStorage.setItem("cm.name", m.payload.name);
     myName = m.payload.name;
     updateTrayColors();
+    joinTitle.classList.add("hidden");
+    loginEl.classList.add("hidden");
     show("ok", `Welcome, ${m.payload.name}! Waiting for the game to start...`);
   },
   gameStarted(m) {
     myRole = m.payload.role;
-    show("ok", `Game started! Your role: ${m.payload.role}`);
+    show("ok", "");
+    roleLine.textContent = myName + " - " + m.payload.role;
     showGame();
     updateActionVisibility();
   },
   round(m) {
 
     currentRound = m.round;
+    finalResults.classList.add("hidden");
+    gridEl.classList.remove("hidden");
     resetRoundSelections();
     unlock();
     document.querySelectorAll(".harvester-dot").forEach(d => d.classList.remove("locked"));
@@ -486,17 +506,30 @@ const handlers = {
   },
   roundResult(m) {
 
-    myTotal = m.total;
     resultGain.textContent = "Round " + m.round + ": your family harvested " + m.gain;
     resultTotal.textContent = "Total since the start: " + m.total;
     renderMemberTable(m.harvesters || [], m.round);
     resultCard.classList.remove("hidden");
   },
-  gameOver() {
+  gameOver(m) {
     locked = true;
-    pauseTurns("Game over", myTotal != null
-      ? "The game is over. Your family harvested " + myTotal + " in total. Thank you for playing!"
-      : "The game is over. Thank you for playing!");
+    pauseTurns("Game over", "The game is over. Thank you for playing!");
+    const families = m.families || [];
+    const roundLabels = Array.from({ length: m.rounds }, (_, i) => "R" + (i + 1));
+    gridEl.classList.add("hidden");
+    resultCard.classList.add("hidden");
+
+    finalResults.replaceChildren(
+      heading("Households"),
+      makeTable(["Family", ...roundLabels, "Total"],
+        families.flatMap(f => [
+          { className: "family-row", cells: [f.name, ...f.gains, f.total] },
+          ...(f.harvesters || []).map(h => ({ className: "member-row", cells: [h.name, ...h.gains, h.total] }))
+        ])),
+      heading("Ranger"),
+      makeTable(["Round", "Protected zones", "Newborn birds"],
+        (m.ranger || []).map(r => [r.round, r.protected.join(", ") || "-", r.newborns])));
+    finalResults.classList.remove("hidden");
   },
   biomass(m) { applyBiomass(m.values); },
   birds(m) { applyBirds(m.values); },
