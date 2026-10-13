@@ -5,6 +5,11 @@ resolveHouseholdsTurn
 	round := model currentRound.
 	[ model resolveRound.
 	model households do: [ :household | household recordGain ].
+	rangerRounds add: (Dictionary new
+		at: 'round' put: round;
+		at: 'protected' put: ((model cells select: #isProtected) collect: [ :c | model cells indexOf: c ]) asArray;
+		at: 'newborns' put: model totalNewbornsProbe;
+		yourself).
 	self incrementCurrentTimeStep.
 	model removeDestroyedEntities.
 	self recordData.
@@ -15,7 +20,7 @@ resolveHouseholdsTurn
 		at: 'round' put: round;
 		at: 'maxRounds' put: model maxRounds;
 		yourself).
-			self saveData: [ recorder saveRound: round of: self ]]
+	self saveData: [ recorder saveRound: round of: self ] ]
 		on: Error
 		do: [ :e | Transcript showCr: 'Round resolution crashed: ', e messageText ].
 	phase := model currentRound > model maxRounds

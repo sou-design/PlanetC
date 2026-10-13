@@ -8,7 +8,8 @@
 	"instvars" : [
 		"phase",
 		"runnerPresenter",
-		"recorder"
+		"recorder",
+		"rangerRounds"
 	],
 	"name" : "PCGame",
 	"type" : "normal"
