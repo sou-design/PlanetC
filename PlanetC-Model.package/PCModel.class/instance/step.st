@@ -1,6 +1,6 @@
 stepping
 step
 	<control>
-	currentRound > maxRounds ifTrue: [ ^ self ].
-	self beginRound.
-	self resolveRound
+	currentStep > maxSteps ifTrue: [ ^ self ].
+	self updateEnvironment.
+	self applyActions

@@ -7,8 +7,8 @@
 	"classvars" : [ ],
 	"instvars" : [
 		"nbFamilies",
-		"currentRound",
-		"maxRounds",
+		"currentStep",
+		"maxSteps",
 		"submittedMoves"
 	],
 	"name" : "PCModel",

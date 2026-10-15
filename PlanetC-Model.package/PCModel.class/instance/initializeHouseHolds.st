@@ -1,8 +1,8 @@
 initialization
-initializeHouseHolds
+initializeHouseholds
 	1 to: nbFamilies do: [ :i |
 		| household selector |
-		household := self newEntity: PCHouseHold.
+		household := self newEntity: PCHousehold.
 		selector := ('f' , i printString) asSymbol.
 		household tile: (PCTiles perform: selector).
 		1 to: 4 do: [ :j |

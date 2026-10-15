@@ -1,5 +1,5 @@
 as yet unclassified
-resolveRound
+applyActions
 	self households do: [ :h | h resetHarvest ].
 	self households do: [ :h |
 		(submittedMoves includesKey: h)
@@ -9,4 +9,4 @@ resolveRound
 	self cells do: [ :cell | cell updateNonHarvestTime ].
 	self cells do: [ :cell | cell updateNewbornBirds ].
 
-	currentRound := currentRound + 1
+	currentStep := currentStep + 1

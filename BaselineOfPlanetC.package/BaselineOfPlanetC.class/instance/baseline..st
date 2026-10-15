@@ -15,5 +15,5 @@ baseline: spec
 			package: 'PlanetC-Model-Tests'
 			with: [ spec requires: #('PlanetC-Model') ];
 
-			package: 'PlanetC-Model-Game'
+			package: 'PlanetC-Game'
 			with: [ spec requires: #('PlanetC-Model' 'CormasGameServer') ] ]
