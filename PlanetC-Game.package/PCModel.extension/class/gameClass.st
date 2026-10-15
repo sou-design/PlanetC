@@ -1,0 +1,3 @@
+*PlanetC-Game
+gameClass
+   	^ PCGame
