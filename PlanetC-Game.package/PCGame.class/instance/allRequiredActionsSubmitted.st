@@ -1,5 +1,6 @@
 initialization
 allRequiredActionsSubmitted
-	| households |
-	households := server householdClients collect: [ :c | server agentFor: c ].
-	^ households isNotEmpty and: [ households allSatisfy: [ :h | householdsWithMove includes: h ] ]
+	| players |
+	players := server householdClients select: [ :c | c isConnected ].
+	^ players notEmpty and: [
+		players allSatisfy: [ :c | householdsWithMove includes: (server agentFor: c) ] ]

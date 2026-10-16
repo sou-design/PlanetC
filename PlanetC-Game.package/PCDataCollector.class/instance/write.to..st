@@ -5,7 +5,7 @@ write: rows to: fileName
 	folder ensureCreateDirectory.
 	file := folder / (fileName , '.csv').
 	file exists ifFalse: [
-		file writeStreamDo: [ :stream | stream << (self csvLine: rows first keys); lf ] ].
-	file writeStreamDo: [ :stream |
-		stream setToEnd.
-		rows do: [ :row | stream << (self csvLine: row values); lf ] ]
+		file writeStreamDo: [ :s | s << (',' join: rows first keys); lf ] ].
+	file writeStreamDo: [ :s |
+		s setToEnd.
+		rows do: [ :row | s << (',' join: (row values collect: #asString)); lf ] ]

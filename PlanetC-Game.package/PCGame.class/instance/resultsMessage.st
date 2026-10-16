@@ -1,7 +1,7 @@
 ui
 resultsMessage
 	| families |
-	families := self cormasModel households asArray select: [ :household | (server nameFor: household) notEmpty ].
+	families := self householdsWithPlayer.
 	^ Dictionary new
 		at: 'type' put: 'results';
 		at: 'rounds' put: self cormasModel currentStep - 1;
