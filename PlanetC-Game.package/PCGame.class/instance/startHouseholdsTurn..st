@@ -1,6 +1,7 @@
 initialization
 startHouseholdsTurn: seconds
 	| round |
+	householdsWithMove := Set new.
 	round := self cormasModel currentStep.
 	phase := 'householdsTurn'.
 	[ [ | waited |

@@ -9,7 +9,8 @@
 		"phase",
 		"runnerPresenter",
 		"recorder",
-		"rangerRounds"
+		"rangerRounds",
+		"householdsWithMove"
 	],
 	"name" : "PCGame",
 	"type" : "normal"

@@ -1,5 +1,6 @@
 game flow
 protect: cellIds
-	self cormasModel recordProtect: cellIds.
+	self cormasModel currentStep = 1 ifTrue: [ ^ self ].
+	self cormasModel rangers first protect: cellIds.
 	self refreshCormasUI.
 	self broadcastProtection

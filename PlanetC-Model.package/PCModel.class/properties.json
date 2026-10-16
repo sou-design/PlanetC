@@ -8,8 +8,7 @@
 	"instvars" : [
 		"nbFamilies",
 		"currentStep",
-		"maxSteps",
-		"submittedMoves"
+		"maxSteps"
 	],
 	"name" : "PCModel",
 	"type" : "normal"
