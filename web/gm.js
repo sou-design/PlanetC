@@ -68,7 +68,6 @@ function roleSelect(player, roles) {
   select.add(new Option("Choose a role...", ""));
   roles.forEach(r => {
     const option = new Option(r.name + " (" + r.assigned + "/" + r.capacity + ")", r.name);
-    // Ranger is never disabled: choosing it moves the Ranger role and makes the others Households
     option.disabled = r.name !== "Ranger" && r.assigned >= r.capacity && player.role !== r.name;
     select.add(option);
   });
@@ -452,16 +451,13 @@ const gameStatus = byId("gameStatus");
 const gameLegend = byId("gameLegend");
 const birdsBtn = byId("birdsBtn");
 const BIOMASS_COLORS = ["#f6f6f6", "#c8e6c9", "#81c784", "#388e3c"];
-const HOUSEHOLD_PALETTE = ["#1D9E75", "#D85A30", "#534AB7", "#378ADD", "#EF9F27", "#D4537E", "#639922", "#993C1D"];
 const cellEls = [];
 let showBirds = false;
 let lastBirds = null;
 const householdsSeen = new Set();
 
 function colorForHousehold(name) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  return HOUSEHOLD_PALETTE[hash % HOUSEHOLD_PALETTE.length];
+  return "#000000";
 }
 
 function ensureGrid(count) {
@@ -506,20 +502,19 @@ function applyHarvesters(values) {
       cell.appendChild(container);
     }
     container.innerHTML = "";
-    entries.forEach(entry => {
-      householdsSeen.add(entry.household);
-      const chip = document.createElement("div");
-      chip.className = "harvester-chip";
-      chip.title = entry.household + ": " + entry.count;
-      const swatch = document.createElement("span");
-      swatch.className = "harvester-chip-swatch";
-      swatch.style.background = colorForHousehold(entry.household);
-      const count = document.createElement("span");
-      count.textContent = entry.count;
-      chip.appendChild(swatch);
-      chip.appendChild(count);
-      container.appendChild(chip);
-    });
+    entries.forEach(entry => householdsSeen.add(entry.household));
+    const total = entries.reduce((sum, e) => sum + e.count, 0);
+    const chip = document.createElement("div");
+    chip.className = "harvester-chip";
+    chip.title = "Harvesters: " + total;
+    const swatch = document.createElement("span");
+    swatch.className = "harvester-chip-swatch";
+    swatch.style.background = colorForHousehold("");
+    const count = document.createElement("span");
+    count.textContent = total;
+    chip.appendChild(swatch);
+    chip.appendChild(count);
+    container.appendChild(chip);
   });
   renderLegend();
 }
@@ -552,6 +547,7 @@ function applyBirds(values) {
 }
 
 function renderLegend() {
+  if (!gameLegend) return;
   gameLegend.innerHTML = "";
   Array.from(householdsSeen).sort().forEach(name => {
     const item = document.createElement("span");

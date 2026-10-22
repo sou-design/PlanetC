@@ -54,7 +54,6 @@ let pickerCellId = null;
 const COLUMNS = 5;
 const ROWS = 4;
 const TOTAL_CELLS = COLUMNS * ROWS;
-const HOUSEHOLD_PALETTE = ["#1D9E75", "#D85A30", "#534AB7", "#378ADD", "#EF9F27", "#D4537E", "#639922", "#993C1D"];
 const MAX_PROTECTED_ZONES = 3;
 const HARVESTERS = 4;
 
@@ -69,12 +68,9 @@ let countdownInterval = null;
 const harvesterPlacement = new Array(HARVESTERS).fill(null);
 const protectedZones = new Set();
 
-nameInput.value = localStorage.getItem("cm.name") || "";
 
 function colorForHousehold(name) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  return HOUSEHOLD_PALETTE[hash % HOUSEHOLD_PALETTE.length];
+  return name === myName ? "#378ADD" : "#000000";
 }
 
 function myColor() {
@@ -92,7 +88,6 @@ function show(kind, text) {
   clearTimeout(msgTimer);
   msg.className = kind;
   msg.textContent = text;
-  // During the game, a message disappears after a few seconds
   if (myRole) msgTimer = setTimeout(() => { msg.textContent = ""; }, 4000);
 }
 
@@ -212,6 +207,10 @@ for (let id = 1; id <= TOTAL_CELLS; id++) {
   cell.className = "cell";
   cell.dataset.id = id;
   cell.style.background = BIOMASS_COLORS[0];
+  const label = document.createElement("span");
+  label.className = "cell-id";
+  label.textContent = id;
+  cell.appendChild(label);
   cell.addEventListener("click", () => {
     if (canMoveHarvesters()) { openPicker(id); return; }
     if (!canProtectZones()) return;
@@ -336,18 +335,21 @@ function applyHarvesters(values) {
         cell.appendChild(container);
       }
       container.innerHTML = "";
-      entries.forEach(entry => {
+      const mine = entries.filter(e => e.household === myName).reduce((sum, e) => sum + e.count, 0);
+      const others = entries.filter(e => e.household !== myName).reduce((sum, e) => sum + e.count, 0);
+      [[mine, myName, "Your family"], [others, "", "Other families"]].forEach(([count, owner, label]) => {
+        if (count === 0) return;
         const chip = document.createElement("div");
         chip.className = "harvester-chip";
         const swatch = document.createElement("span");
         swatch.className = "harvester-chip-swatch";
-        swatch.style.background = colorForHousehold(entry.household);
+        swatch.style.background = colorForHousehold(owner);
         const countText = document.createElement("span");
         countText.className = "harvester-chip-count";
-        countText.textContent = entry.count;
+        countText.textContent = count;
         chip.appendChild(swatch);
         chip.appendChild(countText);
-        chip.title = entry.household + ": " + entry.count;
+        chip.title = label + ": " + count;
         container.appendChild(chip);
       });
     } else if (container) {
@@ -448,7 +450,6 @@ function makeTable(headers, rows) {
   headers.forEach(text => { head.appendChild(document.createElement("th")).textContent = text; });
   const body = table.createTBody();
   rows.forEach(r => {
-    // A row is an array of values, or { cells, className } to style it
     const row = body.insertRow();
     if (r.className) row.className = r.className;
     (Array.isArray(r) ? r : r.cells).forEach(value => { row.insertCell().textContent = value; });
@@ -464,25 +465,33 @@ function heading(text) {
 
 const handlers = {
   registered(m) {
-    localStorage.setItem("cm.name", m.payload.name);
     myName = m.payload.name;
+    saveName(myName);
+    setConnected(true);
     updateTrayColors();
     joinTitle.classList.add("hidden");
     loginEl.classList.add("hidden");
-    show("ok", `Welcome, ${m.payload.name}! Waiting for the game to start...`);
+    if (!myRole) {
+      show("ok", `Welcome, ${m.payload.name}! Waiting for the game to start...`);
+      changeNameBtn.classList.remove("hidden");
+    }
   },
   gameStarted(m) {
+    const rejoined = myRole === m.payload.role;
     myRole = m.payload.role;
-    show("ok", "");
+    changeNameBtn.classList.add("hidden");
+    if (!rejoined) show("ok", "");
     roleLine.textContent = myName + " - " + m.payload.role;
     showGame();
     updateActionVisibility();
   },
   round(m) {
-
+    const newRound = m.round !== currentRound;
     currentRound = m.round;
     finalResults.classList.add("hidden");
     gridEl.classList.remove("hidden");
+    if (!newRound) return;
+    lastAction = null;
     resetRoundSelections();
     unlock();
     document.querySelectorAll(".harvester-dot").forEach(d => d.classList.remove("locked"));
@@ -494,8 +503,14 @@ const handlers = {
 
     currentRound = m.round;
     currentTurn = m.turn;
-    unlock();
-    startCountdown(m.seconds);
+    const sentThisTurn = lastAction && lastAction.round === m.round && lastAction.turn === m.turn;
+    if (sentThisTurn) {
+      sendNow(lastAction.payload);
+      lockHarvesters();
+    } else {
+      unlock();
+    }
+    startCountdown(m.seconds - (m.age || 0));
   },
   turnEnded() {
     pauseTurns();
@@ -538,8 +553,8 @@ const handlers = {
   harvesters(m) { applyHarvesters(m.values); },
   rejected(m) {
     if (reasonOf(m) !== "name-taken") return;
+    leaveGame();
     show("error", "This name is already taken. Choose another.");
-    ws.close();
   },
   error(m) { show("error", "Error: " + reasonOf(m)); }
 };
@@ -551,33 +566,169 @@ function unlock() {
   trayTokens.forEach(t => t.classList.remove("locked"));
 }
 
+
+const SAVED_NAME_KEY = "cm.name";
+const SAVED_AT_KEY = "cm.nameSavedAt";
+const REJOIN_WINDOW_MS = 6 * 60 * 60 * 1000;
+const HEARTBEAT_MS = 5000;
+const DEAD_AFTER_MS = 15000;
+const WAKE_CHECK_MS = 3000;
+const BANNER_DELAY_MS = 1500;
+
 let ws = null;
+let heartbeatTimer = null;
+let reconnectTimer = null;
+let bannerTimer = null;
+let lastMessageAt = 0;
+let lastAction = null;
+
+const connBanner = document.createElement("div");
+connBanner.id = "connBanner";
+connBanner.className = "hidden";
+connBanner.setAttribute("role", "status");
+document.body.prepend(connBanner);
+
+const changeNameBtn = document.createElement("button");
+changeNameBtn.type = "button";
+changeNameBtn.id = "changeNameBtn";
+changeNameBtn.className = "link-button hidden";
+changeNameBtn.textContent = "Not you? Change name";
+msg.after(changeNameBtn);
+changeNameBtn.addEventListener("click", () => {
+  leaveGame();
+  show("", "");
+});
+
+function readStorage(key) {
+  try { return localStorage.getItem(key); } catch (e) { return null; }
+}
+
+function writeStorage(key, value) {
+  try {
+    if (value == null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  } catch (e) { }
+}
+
+function saveName(name) {
+  writeStorage(SAVED_NAME_KEY, name);
+  writeStorage(SAVED_AT_KEY, String(Date.now()));
+}
+
+function setConnected(connected) {
+  clearTimeout(bannerTimer);
+  if (connected) {
+    connBanner.classList.add("hidden");
+    return;
+  }
+  bannerTimer = setTimeout(() => {
+    connBanner.textContent = "Connection lost. Reconnecting...";
+    connBanner.classList.remove("hidden");
+  }, BANNER_DELAY_MS);
+}
+
+function stopHeartbeat() {
+  clearInterval(heartbeatTimer);
+  heartbeatTimer = null;
+}
+
+function startHeartbeat() {
+  stopHeartbeat();
+  heartbeatTimer = setInterval(() => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (Date.now() - lastMessageAt > DEAD_AFTER_MS) return reconnectNow();
+    ws.send(JSON.stringify({ type: "ping" }));
+    writeStorage(SAVED_AT_KEY, String(Date.now()));
+  }, HEARTBEAT_MS);
+}
+
+function dropSocket() {
+  const old = ws;
+  ws = null;
+  stopHeartbeat();
+  if (old) {
+    try { old.close(); } catch (e) { }
+  }
+}
+
 function connect(name) {
   myName = name;
   updateTrayColors();
+  clearTimeout(reconnectTimer);
+  dropSocket();
+
   const proto = location.protocol === "https:" ? "wss" : "ws";
-  ws = new WebSocket(`${proto}://${location.host}/ws`);
-  ws.addEventListener("open", () => {
+  const socket = new WebSocket(`${proto}://${location.host}/ws`);
+  ws = socket;
+
+  socket.addEventListener("open", () => {
+    if (socket !== ws) return;
     reconnectAttempts = 0;
-    ws.send(JSON.stringify({ type: "bonjour", name: name }));
-    const heartbeat = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "ping" }));
-      else clearInterval(heartbeat);
-    }, 5000);
+    lastMessageAt = Date.now();
+    socket.send(JSON.stringify({ type: "bonjour", name: name }));
+    startHeartbeat();
   });
-  ws.addEventListener("message", (ev) => {
+  socket.addEventListener("message", (ev) => {
+    if (socket !== ws) return;
+    lastMessageAt = Date.now();
     let m;
     try { m = parseServerMessage(ev.data); } catch (e) { return; }
     const handler = m && handlers[m.type];
     if (handler) handler(m);
   });
-  ws.addEventListener("close", () => {
-    if (myName) {
-      reconnectAttempts++;
-      setTimeout(() => connect(myName), Math.min(2000 * reconnectAttempts, 10000));
-    }
+  socket.addEventListener("close", () => {
+    if (socket !== ws) return;
+    ws = null;
+    stopHeartbeat();
+    scheduleReconnect();
   });
-  ws.addEventListener("error", () => show("error", "Connection error"));
+}
+
+function scheduleReconnect() {
+  if (!myName) return;
+  setConnected(false);
+  clearTimeout(reconnectTimer);
+  const delay = reconnectAttempts === 0 ? 300 : Math.min(1000 * reconnectAttempts, 5000);
+  reconnectAttempts++;
+  reconnectTimer = setTimeout(() => connect(myName), delay);
+}
+
+function reconnectNow() {
+  if (!myName) return;
+  setConnected(false);
+  reconnectAttempts = 0;
+  connect(myName);
+}
+
+function checkConnection() {
+  if (!myName) return;
+  if (!ws || ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED) return reconnectNow();
+  if (ws.readyState !== WebSocket.OPEN) return;
+  const askedAt = Date.now();
+  ws.send(JSON.stringify({ type: "ping" }));
+  setTimeout(() => {
+    if (myName && lastMessageAt < askedAt) reconnectNow();
+  }, WAKE_CHECK_MS);
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") checkConnection();
+});
+window.addEventListener("pageshow", (e) => { if (e.persisted) checkConnection(); });
+window.addEventListener("online", checkConnection);
+window.addEventListener("focus", checkConnection);
+
+function leaveGame() {
+  myName = null;
+  lastAction = null;
+  clearTimeout(reconnectTimer);
+  dropSocket();
+  setConnected(true);
+  writeStorage(SAVED_AT_KEY, null);
+  changeNameBtn.classList.add("hidden");
+  joinTitle.classList.remove("hidden");
+  loginEl.classList.remove("hidden");
+  nameInput.focus();
 }
 
 byId("login").addEventListener("submit", (e) => {
@@ -587,14 +738,24 @@ byId("login").addEventListener("submit", (e) => {
     show("error", "Please enter a name");
     return;
   }
+  reconnectAttempts = 0;
   connect(name);
 });
 
+function sendNow(payload) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+  ws.send(JSON.stringify(payload));
+  return true;
+}
+
 function sendAction(allowed, notAllowedText, payload) {
   if (!allowed) return show("error", notAllowedText);
-  if (!ws || ws.readyState !== WebSocket.OPEN) return show("error", "Not connected");
-  ws.send(JSON.stringify(payload));
+  lastAction = { round: currentRound, turn: currentTurn, payload: payload };
   lockHarvesters();
+  if (!sendNow(payload)) {
+    show("error", "Connection lost. Your choice will be sent when the phone reconnects.");
+    checkConnection();
+  }
 }
 
 sendBtn.addEventListener("click", () => sendAction(canMoveHarvesters(),
@@ -604,3 +765,15 @@ sendBtn.addEventListener("click", () => sendAction(canMoveHarvesters(),
 protectBtn.addEventListener("click", () => sendAction(canProtectZones(),
   "You can only protect zones during the Ranger turn",
   { type: "protect", cells: Array.from(protectedZones) }));
+
+(function rejoinAfterReload() {
+  const savedName = readStorage(SAVED_NAME_KEY) || "";
+  const savedAt = Number(readStorage(SAVED_AT_KEY)) || 0;
+  nameInput.value = savedName;
+  if (!savedName || Date.now() - savedAt > REJOIN_WINDOW_MS) return;
+  joinTitle.classList.add("hidden");
+  loginEl.classList.add("hidden");
+  show("ok", "Joining as " + savedName + "...");
+  changeNameBtn.classList.remove("hidden");
+  connect(savedName);
+})();
