@@ -179,3 +179,4 @@ pre { background: #f6f6f6; padding: .75rem; overflow: auto; max-height: 160px }
   color: #555; text-decoration: underline; font-size: .9rem;
 }
 .link-button.hidden { display: none }
+.cell .cell-id { position: absolute; top: 3px; right: 5px; font-size: 10px; color: rgba(0,0,0,.35) }
