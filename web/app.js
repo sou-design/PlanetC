@@ -600,13 +600,13 @@ changeNameBtn.addEventListener("click", () => {
 });
 
 function readStorage(key) {
-  try { return localStorage.getItem(key); } catch (e) { return null; }
+  try { return sessionStorage.getItem(key); } catch (e) { return null; }
 }
 
 function writeStorage(key, value) {
   try {
-    if (value == null) localStorage.removeItem(key);
-    else localStorage.setItem(key, value);
+    if (value == null) sessionStorage.removeItem(key);
+    else sessionStorage.setItem(key, value);
   } catch (e) { }
 }
 
