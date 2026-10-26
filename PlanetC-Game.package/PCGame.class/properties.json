@@ -10,7 +10,8 @@
 		"runnerPresenter",
 		"recorder",
 		"rangerRounds",
-		"householdsWithMove"
+		"householdsWithMove",
+		"turnEndsAt"
 	],
 	"name" : "PCGame",
 	"type" : "normal"

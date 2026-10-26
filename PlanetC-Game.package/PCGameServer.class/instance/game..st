@@ -1,3 +1,4 @@
 accessing
-game: aGame
-	game := aGame
+game: anObject
+
+	game := anObject

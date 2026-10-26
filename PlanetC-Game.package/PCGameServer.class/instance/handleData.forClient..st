@@ -1,10 +1,12 @@
 as yet unclassified
 handleData: aDictionary forClient: aClient
 	| type |
-	type := aDictionary at: 'type' ifAbsent: [ ^ self ].
+	[ type := aDictionary at: 'type' ifAbsent: [ ^ self ].
 	type = 'ping' ifTrue: [ ^ aClient sendPongMessage ].
 	(type beginsWith: 'gm') ifTrue: [ ^ self handleGameMasterRequest: aDictionary from: aClient ].
 	type = 'move' ifTrue: [
 		game phase = 'householdsTurn' ifFalse: [ ^ self ].
 		^ game move: (aDictionary at: 'harvesterCells') for: (self agentFor: aClient) ].
-	type = 'protect' ifTrue: [ ^ game protect: (aDictionary at: 'cells') ]
+	type = 'protect' ifTrue: [ ^ game protect: (aDictionary at: 'cells') ] ]
+		on: Error
+		do: [ :e | self log: 'Bad message from ', aClient name, ': ', e messageText ]

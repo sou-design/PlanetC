@@ -1,9 +1,10 @@
-initialization
+game flow
 startHouseholdsTurn: seconds
 	| round |
 	householdsWithMove := Set new.
 	round := self cormasModel currentStep.
 	phase := 'householdsTurn'.
+	turnEndsAt := DateAndTime now + seconds seconds.
 	[ [ | waited |
 		server broadcast: (Dictionary new
 			at: 'type' put: 'turn';

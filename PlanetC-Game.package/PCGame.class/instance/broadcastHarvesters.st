@@ -1,6 +1,7 @@
 broadcast
 broadcastHarvesters
-	server broadcast: (Dictionary new
+	| message |
+	message := Dictionary new
 		at: 'type' put: 'harvesters';
 		at: 'values' put: (self cormasModel cells collect: [ :c |
 			| counts |
@@ -14,4 +15,12 @@ broadcastHarvesters
 					at: 'household' put: assoc key;
 					at: 'count' put: assoc value;
 					yourself ] ]) asArray;
-		yourself)
+		yourself.
+	(phase = 'householdsTurn' or: [ phase = 'householdsDone' ])
+		ifTrue: [ server householdClients do: [ :c |
+			c sendMessage: (Dictionary new
+				at: 'type' put: 'harvesters';
+				at: 'values' put: ((message at: 'values') collect: [ :entries |
+					entries select: [ :e | (e at: 'household') = c name ] ]);
+				yourself) ] ]
+		ifFalse: [ server broadcast: message ]

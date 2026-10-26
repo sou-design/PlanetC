@@ -1,4 +1,4 @@
-initialization
+broadcast
 resolveHouseholdsTurn
 	| model round |
 	model := self cormasModel.
@@ -11,6 +11,9 @@ resolveHouseholdsTurn
 		at: 'newborns' put: model totalNewborns;
 		yourself).
 	self incrementCurrentTimeStep.
+	phase := model currentStep > model maxSteps
+		ifTrue: [ 'ended' ]
+		ifFalse: [ 'ready' ].
 	model removeDestroyedEntities.
 	self recordData.
 	self broadcastState.
@@ -22,7 +25,4 @@ resolveHouseholdsTurn
 		yourself).
 	self saveData: [ recorder saveRound: round of: self ] ]
 		on: Error
-		do: [ :e | Transcript showCr: 'Round resolution crashed: ', e messageText ].
-	phase := model currentStep > model maxSteps
-		ifTrue: [ 'ended' ]
-		ifFalse: [ 'ready' ]
+		do: [ :e | Transcript showCr: 'Round resolution crashed: ', e messageText ]

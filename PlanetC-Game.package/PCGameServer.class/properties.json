@@ -6,8 +6,8 @@
 	"pools" : [ ],
 	"classvars" : [ ],
 	"instvars" : [
-		"game",
-		"agents"
+		"agents",
+		"game"
 	],
 	"name" : "PCGameServer",
 	"type" : "normal"

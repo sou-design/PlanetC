@@ -3,6 +3,7 @@ startRangerTurn: seconds
 	| round |
 	round := self cormasModel currentStep.
 	phase := 'rangerTurn'.
+	turnEndsAt := DateAndTime now + seconds seconds.
 	[ [ server broadcast: (Dictionary new
 			at: 'type' put: 'turn';
 			at: 'round' put: round;
