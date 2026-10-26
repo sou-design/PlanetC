@@ -11,7 +11,8 @@
 		"recorder",
 		"rangerRounds",
 		"householdsWithMove",
-		"turnEndsAt"
+		"turnEndsAt",
+		"finished"
 	],
 	"name" : "PCGame",
 	"type" : "normal"

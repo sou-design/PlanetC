@@ -1,6 +1,7 @@
 accessing
 proceed: seconds
 	| model |
+	finished := false.
 	model := self cormasModel.
 	phase = 'householdsDone' ifTrue: [
 		self resolveHouseholdsTurn.

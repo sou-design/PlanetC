@@ -1,6 +1,7 @@
 initialization
 finish
 	| model |
+	finished := true.
 	model := self cormasModel.
 	((phase = 'ready' or: [ phase = 'ended' ]) and: [ model currentStep > 1 ])
 		ifFalse: [ ^ 'notReady' ].

@@ -39,6 +39,6 @@ startOn: aPortNumber
 	dispatcher map: '/icons/poussin.png' to: [ :request :response |
 		response entity: (ZnEntity with: PCTiles poussinIconData base64Decoded type: (ZnMimeType fromString: 'image/png')) ].
 
-	server := ZnServer startOn: aPortNumber.
-	self log: ('Started a server at localhost:', aPortNumber asString).
+	server := self startZincFrom: aPortNumber.
+	self log: 'Started a server at localhost:' , server port printString.
 	server delegate: dispatcher
