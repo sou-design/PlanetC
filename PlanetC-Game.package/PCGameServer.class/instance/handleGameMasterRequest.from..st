@@ -17,9 +17,7 @@ handleGameMasterRequest: aDictionary from: aClient
 
 	aClient role = PCGameMasterRole ifFalse: [ ^ self ].
 	players := self clients reject: [ :c | c role = PCGameMasterRole ].
-	canStart := players notEmpty
-		and: [ (players allSatisfy: #hasRole)
-		and: [ self assignableRoles allSatisfy: [ :r | (self playersOf: r) size <= (self capacityOf: r) ] ] ].
+	canStart := self canStart.
 	reply := Dictionary new at: 'type' put: type; yourself.
 	answer := [ :result | aClient sendMessage: (reply at: 'result' put: result; yourself) ].
 
