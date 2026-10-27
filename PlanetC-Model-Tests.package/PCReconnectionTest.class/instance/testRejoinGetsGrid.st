@@ -1,7 +1,7 @@
 splitjoin
 testRejoinGetsGrid
-	| ws |
+	| state |
 	self startGameWith: #('alice' 'bob').
-	ws := self join: 'alice'.
+	state := self stateOf: (self join: 'alice').
 	#('biomass' 'birds' 'protection' 'harvesters') do: [ :each |
-		self assert: (ws types includes: each) ]
+		self assert: (state at: each) size equals: 20 ]

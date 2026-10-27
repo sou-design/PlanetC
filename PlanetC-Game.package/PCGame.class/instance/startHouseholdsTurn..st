@@ -22,7 +22,7 @@ startHouseholdsTurn: seconds
 			at: 'round' put: round;
 			at: 'turn' put: 'households';
 			yourself).
-		self broadcastMoves ]
+		self broadcastMoves. self broadcastState.]
 			on: Error
 			do: [ :e |
 				phase := 'householdsDone'.

@@ -4,4 +4,5 @@ protect: cellIds
 	self cormasModel rangers first protect: cellIds.
 	self refreshCormasUI.
 	self broadcastProtection.
-	phase = 'rangerTurn' ifTrue: [ phase := 'rangerDone' ]
+	phase = 'rangerTurn' ifTrue: [ phase := 'rangerDone' ].
+	server publishState.

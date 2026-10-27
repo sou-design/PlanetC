@@ -10,6 +10,7 @@ startRangerTurn: seconds
 			at: 'turn' put: 'ranger';
 			at: 'seconds' put: seconds;
 			yourself).
+		self broadcastState.
 		(Delay forSeconds: seconds) wait.
 		server broadcast: (Dictionary new
 			at: 'type' put: 'turnEnded';
@@ -18,4 +19,5 @@ startRangerTurn: seconds
 			yourself) ]
 			on: Error
 			do: [ :e | Transcript showCr: 'Ranger turn crashed: ', e messageText ].
-	phase := 'rangerDone' ] forkNamed: 'Ranger turn'
+	phase = 'rangerTurn' ifTrue: [ phase := 'rangerDone' ].
+	server publishState ] forkNamed: 'Ranger turn'

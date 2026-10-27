@@ -13,7 +13,7 @@ proceed: seconds
 		self beginNextRound.
 		model currentStep = 1
 			ifTrue: [ self startHouseholdsTurn: seconds ]
-			ifFalse: [ phase := 'newBiomass' ].
+			ifFalse: [ phase := 'newBiomass'. server publishState. ].
 		^ 'ok' ].
 	phase = 'newBiomass' ifTrue: [
 		self startRangerTurn: seconds.

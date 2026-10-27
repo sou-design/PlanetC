@@ -1,7 +1,8 @@
-tests
+as yet unclassified
 testRejoinBetweenTurnsGetsNoTurn
-	| ws |
+	| state |
 	self startGameWith: #('alice' 'bob').
 	self phase: 'rangerDone'.
-	ws := self join: 'alice'.
-	self deny: (ws types includes: 'turn')
+	state := self stateOf: (self join: 'alice').
+	self assert: (state at: 'turn') equals: ''.
+	self assert: (state at: 'secondsLeft') equals: 0

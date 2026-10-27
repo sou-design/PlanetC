@@ -11,7 +11,7 @@ resultsMessage
 			Dictionary new
 				at: 'name' put: (server nameFor: household);
 				at: 'gains' put: gains asArray;
-				at: 'total' put: (gains inject: 0 into: [ :sum :each | sum + each ]);
+				at: 'total' put: household totalGain;
 				at: 'harvesters' put: (self harvesterResultsFor: household);
 				yourself ]);
 		yourself

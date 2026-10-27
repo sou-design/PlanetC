@@ -2,4 +2,5 @@ broadcast
 move: cellIds for: aHousehold
 	aHousehold moveHarvestersTo: cellIds.
 	householdsWithMove add: aHousehold.
-	self broadcastHarvesters
+	self broadcastHarvesters.
+	server publishState.
