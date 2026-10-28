@@ -7,9 +7,10 @@ finish
 	finished := true.
 	model maxSteps: model currentStep - 1.
 	phase := 'ended'.
-	server broadcast: (self resultsMessage
+		server broadcast: (self resultsMessage
 		at: 'type' put: 'gameOver';
 		at: 'ranger' put: rangerRounds asArray;
+		at: 'session' put: session;
 		yourself).
 	server publishState.
 	^ 'ok'

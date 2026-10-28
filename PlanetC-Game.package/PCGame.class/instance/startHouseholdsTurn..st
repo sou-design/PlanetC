@@ -12,6 +12,8 @@ startHouseholdsTurn: seconds
 			at: 'turn' put: 'households';
 			at: 'seconds' put: seconds;
 			yourself).
+
+		server publishState.
 		waited := 0.
 		[ waited < (seconds * 1000) and: [ self allRequiredActionsSubmitted not ] ] whileTrue: [
 			(Delay forMilliseconds: 500) wait.
@@ -22,7 +24,8 @@ startHouseholdsTurn: seconds
 			at: 'round' put: round;
 			at: 'turn' put: 'households';
 			yourself).
-		self broadcastMoves. self broadcastState.]
+		self broadcastMoves.
+		self broadcastState ]
 			on: Error
 			do: [ :e |
 				phase := 'householdsDone'.

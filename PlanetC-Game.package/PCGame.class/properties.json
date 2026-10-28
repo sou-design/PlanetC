@@ -12,7 +12,8 @@
 		"rangerRounds",
 		"householdsWithMove",
 		"turnEndsAt",
-		"finished"
+		"finished",
+		"session"
 	],
 	"name" : "PCGame",
 	"type" : "normal"

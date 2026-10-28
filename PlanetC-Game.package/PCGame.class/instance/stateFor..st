@@ -43,9 +43,9 @@ stateFor: aClient
 		yourself.
 
 	"Game over: the final tables"
-	finished ifTrue: [
+		finished ifTrue: [
 		^ state
-			at: 'finalResults' put: (self resultsMessage at: 'ranger' put: rangerRounds asArray; yourself);
+			at: 'finalResults' put: (self resultsMessage at: 'ranger' put: rangerRounds asArray; at: 'session'   put: session; yourself);
 			yourself ].
 
 

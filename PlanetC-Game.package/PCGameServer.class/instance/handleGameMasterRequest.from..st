@@ -1,13 +1,10 @@
-game master
+as yet unclassified
 handleGameMasterRequest: aDictionary from: aClient
 	| type players reply answer canStart seconds |
 	type := aDictionary at: 'type'.
 
 	type = 'gmLogin' ifTrue: [
-		(self clients select: [ :c | c role = PCGameMasterRole and: [ c ~~ aClient and: [ c isConnected ] ] ])
-			do: [ :previous |
-				previous sendMessage: (Dictionary new at: 'type' put: 'gmReplaced'; yourself).
-				[ previous disconnect ] on: Error do: [ :e | ] ].
+		aClient name = '[GM]' ifFalse: [ ^ self ].
 		aClient role: PCGameMasterRole.
 		^ aClient sendMessage: (Dictionary new
 			at: 'type' put: 'gmAccepted';
@@ -15,7 +12,7 @@ handleGameMasterRequest: aDictionary from: aClient
 			at: 'port' put: self portNumber;
 			yourself) ].
 
-	aClient role = PCGameMasterRole ifFalse: [ ^ self ].
+	(aClient role = PCGameMasterRole and: [ aClient name = '[GM]' ]) ifFalse: [ ^ self ].
 	players := self clients reject: [ :c | c role = PCGameMasterRole ].
 	canStart := self canStart.
 	reply := Dictionary new at: 'type' put: type; yourself.
@@ -24,6 +21,7 @@ handleGameMasterRequest: aDictionary from: aClient
 	type = 'gmPlayers' ifTrue: [
 		reply
 			at: 'phase' put: game phase;
+			at: 'session' put: game session;
 			at: 'canStart' put: canStart;
 			at: 'roles' put: (self assignableRoles collect: [ :r |
 				Dictionary new
@@ -63,7 +61,8 @@ handleGameMasterRequest: aDictionary from: aClient
 		^ answer value: (self
 			assignRole: (aDictionary at: 'role' ifAbsent: [ '' ])
 			toPlayerNamed: (aDictionary at: 'player' ifAbsent: [ '' ])) ].
-
+		type = 'gmNextSession' ifTrue: [
+		^ answer value: ([ game startSecondSession ] on: Error do: [ :e | e messageText ]) ].
 	type = 'gmFinish' ifTrue: [ ^ answer value: game finish ].
 
 	type = 'gmShowBirds' ifTrue: [ ^ self broadcast: (Dictionary new at: 'type' put: 'showBirds'; at: 'show' put: (aDictionary at: 'show'); yourself) ].
