@@ -1,11 +1,10 @@
 initialization
 initializeHouseholds
 	1 to: nbFamilies do: [ :i |
-		| household selector |
+		| household |
 		household := self newEntity: PCHousehold.
-		selector := ('f' , i printString) asSymbol.
-		household tile: (PCTiles perform: selector).
-		1 to: 4 do: [ :j |
+		household tile: (PCTiles family: i).
+		1 to: 20 // nbFamilies + (i <= (20 \\ nbFamilies) ifTrue: [ 1 ] ifFalse: [ 0 ]) do: [ :j |
 			| harvester |
 			harvester := self newEntity: PCHarvester.
 			harvester household: household.

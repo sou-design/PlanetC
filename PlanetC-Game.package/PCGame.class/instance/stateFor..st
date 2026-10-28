@@ -12,6 +12,7 @@ stateFor: aClient
 		at: 'type' put: 'state';
 		at: 'role' put: aClient role roleName;
 		at: 'phase' put: phase;
+		at: 'harvesterCount' put: (isHousehold ifTrue: [ household harvesters size ] ifFalse: [ 0 ]);
 		at: 'round' put: ((#('newBiomass' 'rangerTurn' 'rangerDone' 'householdsTurn' 'householdsDone') includes: phase)
 			ifTrue: [ step ]
 			ifFalse: [ step - 1 ]);
