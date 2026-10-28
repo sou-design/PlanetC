@@ -39,6 +39,14 @@ function load(store, key) { try { return store.getItem(key) || ""; } catch (e) {
 function save(store, key, value) { try { store.setItem(key, value); } catch (e) {} }
 function forget(store, key) { try { store.removeItem(key); } catch (e) {} }
 
+// Identifies this tab. A reload keeps it; another tab, window or device gets a new one
+// and is refused while a game master is connected.
+let gmToken = load(sessionStorage, "cm.gm.token");
+if (!gmToken) {
+  gmToken = Array.from(crypto.getRandomValues(new Uint32Array(4)), n => n.toString(16)).join("");
+  save(sessionStorage, "cm.gm.token", gmToken);
+}
+
 function showDashboard() {
   signedIn = true;
   stopped = false;
@@ -307,6 +315,7 @@ const turnFieldText = byId("turnFieldText");
 const turnInput = byId("turnSeconds");
 const proceedBtn = byId("proceedBtn");
 const finishBtn = byId("finishBtn");
+const nextSessionBtn = byId("nextSessionBtn");
 const movesBtn = byId("movesBtn");
 const movesPanel = byId("movesPanel");
 const movesList = byId("movesList");
@@ -316,7 +325,7 @@ const TURNS = {
   households: { label: "Households turn", defaultSeconds: 120, min: 10, max: 3600, key: "cm.gm.householdSeconds" }
 };
 const game = { phase: "lobby", round: 1, maxRounds: null, over: false, waiting: false,
-               startedAt: 0, durationMs: 0 };
+               startedAt: 0, durationMs: 0, session: 1 };
 let autoSwitched = false;
 let shownTurn = null;
 
@@ -341,7 +350,7 @@ function setPhaseText(text, time) {
 }
 
 function roundLabel(n) {
-  return "Round " + n + (game.maxRounds ? " of " + game.maxRounds : "");
+  return "Session " + game.session + " - Round " + n + (game.maxRounds ? " of " + game.maxRounds : "");
 }
 
 function prepareTurnField(turn) {
@@ -365,6 +374,8 @@ function renderRound() {
   roundSetup.classList.toggle("hidden", running);
   proceedBtn.disabled = game.waiting || !accepted;
   finishBtn.disabled = game.waiting || !accepted;
+  nextSessionBtn.disabled = game.waiting || !accepted;
+  nextSessionBtn.classList.add("hidden");
 
   const reviewing = game.phase === "householdsDone";
   const showBiomassNext = (game.phase === "ready" && game.round > 1) || game.phase === "ended";
@@ -411,13 +422,14 @@ function renderRound() {
     finishBtn.classList.toggle("hidden", next === 1);
   } else {
     roundTitle.textContent = game.over
-      ? "Game over after " + (next - 1) + (next - 1 === 1 ? " round" : " rounds")
+      ? "Session " + game.session + " is over after " + (next - 1) + (next - 1 === 1 ? " round" : " rounds")
       : "All planned rounds are played (" + (next - 1) + ")";
     setPhaseText(game.over
-      ? "Players see the end of the game. You can still add a round."
-      : "Finish the game, or add an extra round.");
+      ? "Players see their results. You can still add a round."
+      : "Finish the session, or add an extra round.");
     proceedBtn.textContent = game.waiting ? "Starting..." : "Play an extra round (round " + next + ")";
     finishBtn.classList.toggle("hidden", game.over);
+    nextSessionBtn.classList.toggle("hidden", !game.over || game.session !== 1);
   }
 }
 
@@ -439,10 +451,18 @@ proceedBtn.addEventListener("click", () => {
 
 finishBtn.addEventListener("click", () => {
   if (finishBtn.disabled) return;
-  if (!confirm("Finish the game now? Players will see that the game is over.")) return;
+  if (!confirm("Finish the session now? Players will see their results.")) return;
   game.waiting = true;
   renderRound();
   send({ type: "gmFinish" });
+});
+
+nextSessionBtn.addEventListener("click", () => {
+  if (nextSessionBtn.disabled) return;
+  if (!confirm("Start session 2? The board and the scores start again; players keep their roles.")) return;
+  game.waiting = true;
+  renderRound();
+  send({ type: "gmNextSession" });
 });
 
 const gamePanel = byId("gamePanel");
@@ -494,27 +514,25 @@ function applyHarvesters(values) {
   ensureGrid(values.length);
   values.forEach((entries, i) => {
     const cell = cellEls[i];
-    let container = cell.querySelector(".harvester-chips");
+    let container = cell.querySelector(".harvester-dots");
     if (!entries || entries.length === 0) { if (container) container.remove(); return; }
     if (!container) {
       container = document.createElement("div");
-      container.className = "harvester-chips";
+      container.className = "harvester-dots";
       cell.appendChild(container);
     }
     container.innerHTML = "";
-    entries.forEach(entry => householdsSeen.add(entry.household));
-    const total = entries.reduce((sum, e) => sum + e.count, 0);
-    const chip = document.createElement("div");
-    chip.className = "harvester-chip";
-    chip.title = "Harvesters: " + total;
-    const swatch = document.createElement("span");
-    swatch.className = "harvester-chip-swatch";
-    swatch.style.background = colorForHousehold("");
-    const count = document.createElement("span");
-    count.textContent = total;
-    chip.appendChild(swatch);
-    chip.appendChild(count);
-    container.appendChild(chip);
+    // One small dot per harvester
+    entries.forEach(entry => {
+      householdsSeen.add(entry.household);
+      for (let i = 0; i < entry.count; i++) {
+        const dot = document.createElement("span");
+        dot.className = "harvester-small-dot";
+        dot.style.background = colorForHousehold(entry.household);
+        dot.title = entry.household || "Harvester";
+        container.appendChild(dot);
+      }
+    });
   });
   renderLegend();
 }
@@ -680,6 +698,8 @@ const handlers = {
     updateStartButton();
   },
   gmPlayers(m) {
+    // The server is waiting for a new game but this page still shows an old one: start clean
+    if (m.phase === "lobby" && game.phase !== "lobby") return location.reload();
     renderPlayers(m.players || [], m.roles || [], m.phase);
     updateStartButton(m.players || []);
 
@@ -692,6 +712,7 @@ const handlers = {
       showAlert("Cormas did not start the game. Look in Pharo for a debugger window or an error in the Transcript. You can also click Start Game in the Cormas window: this page will follow.");
     }
     if (m.phase && m.phase !== "lobby") startAskedAt = 0;
+    if (m.session && m.session !== game.session) { game.session = m.session; renderRound(); }
     if (m.phase && !(m.phase === game.phase && running(m.phase))) {
       if (m.phase !== game.phase) game.startedAt = 0;
       game.phase = m.phase;
@@ -756,8 +777,9 @@ const handlers = {
   },
   gameOver(m) {
     Object.assign(game, { phase: "ended", over: true, waiting: false });
+    if (m.session) game.session = m.session;
     if (m.rounds != null) { game.round = m.rounds + 1; game.maxRounds = m.rounds; }
-    gameStatus.textContent = "Game over";
+    gameStatus.textContent = "Session " + game.session + " is over";
     renderRound();
     if (m.families) renderResults(m.families, m.rounds);
     byId("rangerResults").replaceChildren(heading("Ranger results"),
@@ -775,7 +797,23 @@ const handlers = {
     if (m.result === "ok") return;
     game.waiting = false;
     renderRound();
-    setPhaseText("The game can only be finished between rounds, after at least one round.");
+    setPhaseText("The session can only be finished between rounds, after at least one round.");
+  },
+  gmNextSession(m) {
+    if (m.result === "ok") return;
+    game.waiting = false;
+    renderRound();
+    showAlert("Session 2 could not start: " + m.result);
+  },
+  sessionStarted(m) {
+    // Same players and roles, new board and scores: start again from round 1
+    Object.assign(game, { phase: "ready", round: 1, over: false, waiting: false, startedAt: 0,
+                          session: m.session, maxRounds: m.maxRounds });
+    renderResults([], 0);
+    byId("rangerResults").replaceChildren();
+    gameStatus.textContent = "Session " + game.session;
+    selectTab("game");
+    renderRound();
   },
   biomass(m) { applyBiomass(m.values); markGameRunning(); },
   protection(m) { applyProtection(m.values); },
@@ -785,7 +823,11 @@ const handlers = {
   gmMove(m) {
     if (m.result !== "ok") showAlert("Harvesters can only be changed after the households turn, before the round is resolved.");
   },
-  rejected() { stopped = true; showLogin("This name is already used on the server. Choose another name."); }
+  replaced() { handlers.gmReplaced(); },
+  rejected() {
+    stopped = true;
+    showLogin("A game master is already connected on another device or tab. Ask them to sign out or close their page, then click Continue again.");
+  }
 };
 
 function connect() {
@@ -800,7 +842,7 @@ function connect() {
 
   socket.addEventListener("open", () => {
 
-    socket.send(JSON.stringify({ type: "bonjour", name: "[GM]" }));
+    socket.send(JSON.stringify({ type: "bonjour", name: "[GM]", token: gmToken, gameMaster: true }));
     socket.send(JSON.stringify({ type: "gmLogin" }));
   });
 
@@ -843,20 +885,20 @@ form.addEventListener("submit", (e) => {
     errorEl.textContent = "Please enter your organization.";
     return;
   }
-  save(localStorage, "cm.gm.org", gmOrg);
-  save(localStorage, "cm.gm.desc", gmDesc);
+  save(sessionStorage, "cm.gm.org", gmOrg);
+  save(sessionStorage, "cm.gm.desc", gmDesc);
   showDashboard();
 });
 
 byId("gmSignOut").addEventListener("click", () => {
-  forget(localStorage, "cm.gm.org");
-  forget(localStorage, "cm.gm.desc");
+  forget(sessionStorage, "cm.gm.org");
+  forget(sessionStorage, "cm.gm.desc");
   form.reset();
   showLogin();
 });
 
-orgInput.value = load(localStorage, "cm.gm.org");
-descInput.value = load(localStorage, "cm.gm.desc");
+orgInput.value = load(sessionStorage, "cm.gm.org");
+descInput.value = load(sessionStorage, "cm.gm.desc");
 if (orgInput.value) {
   gmOrg = orgInput.value;
   gmDesc = descInput.value;

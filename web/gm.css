@@ -98,10 +98,8 @@ body { font-family: system-ui, sans-serif; margin: 0; background: #fafafa; color
 #gmGrid .cell { aspect-ratio: 1; border: 1px solid #999; background: #f6f6f6; position: relative }
 #gmGrid .cell.protected-shared { outline: 3px solid #b00020; outline-offset: -3px }
 #gmGrid .cell-id { position: absolute; top: 3px; right: 5px; font-size: 10px; color: rgba(0,0,0,.35) }
-#gmGrid .harvester-chips { position: absolute; bottom: 4px; left: 4px; right: 4px; display: flex; flex-wrap: wrap; gap: 3px }
-#gmGrid .harvester-chip { display: flex; align-items: center; gap: 3px; background: rgba(255,255,255,.85);
-                          border-radius: 4px; padding: 1px 4px; font-size: 11px; line-height: 1.2 }
-#gmGrid .harvester-chip-swatch { width: 8px; height: 8px; border-radius: 2px; display: inline-block }
+#gmGrid .harvester-dots { position: absolute; bottom: 4px; left: 4px; right: 4px; display: flex; flex-wrap: wrap; gap: 2px }
+#gmGrid .harvester-small-dot { width: 9px; height: 9px; border-radius: 50%; border: 1px solid #fff }
 #gmGrid .bird-icon-plain { position: absolute; top: 4px; left: 4px; width: 16px; height: 16px;
                            background: url(/icons/bird.png) center / contain no-repeat }
 #gmGrid .newborn-chip { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);

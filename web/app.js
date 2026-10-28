@@ -191,14 +191,26 @@ function lockHarvesters() {
 }
 
 const trayTokens = [];
-for (let h = 0; h < HARVESTERS; h++) {
-  const token = document.createElement("div");
-  token.className = "harvester-token";
-  token.textContent = "H" + (h + 1);
-  token.dataset.harvester = h;
-  trayEl.appendChild(token);
-  trayTokens.push(token);
+
+// The 20 harvesters are shared between the families: the server says how many this family has
+function setHarvesterCount(count) {
+  if (!count || count === trayTokens.length) return;
+  trayTokens.forEach(t => t.remove());
+  trayTokens.length = 0;
+  document.querySelectorAll(".harvester-dot").forEach(d => d.remove());
+  harvesterPlacement.length = count;
+  harvesterPlacement.fill(null);
+  for (let h = 0; h < count; h++) {
+    const token = document.createElement("div");
+    token.className = "harvester-token";
+    token.textContent = "H" + (h + 1);
+    token.dataset.harvester = h;
+    trayEl.appendChild(token);
+    trayTokens.push(token);
+  }
+  updateTrayColors();
 }
+setHarvesterCount(HARVESTERS);
 
 const BIOMASS_COLORS = ["#f6f6f6", "#c8e6c9", "#81c784", "#388e3c"];
 const cellEls = {};
@@ -326,31 +338,26 @@ function applyProtection(values) {
 }
 
 function applyHarvesters(values) {
+  // One small dot per harvester: your family in blue, the other families in black
   forEachCell(values, (cell, entries) => {
-    let container = cell.querySelector(".harvester-chips");
+    let container = cell.querySelector(".harvester-dots");
     if (entries && entries.length > 0) {
       if (!container) {
         container = document.createElement("div");
-        container.className = "harvester-chips";
+        container.className = "harvester-dots";
         cell.appendChild(container);
       }
       container.innerHTML = "";
       const mine = entries.filter(e => e.household === myName).reduce((sum, e) => sum + e.count, 0);
       const others = entries.filter(e => e.household !== myName).reduce((sum, e) => sum + e.count, 0);
       [[mine, myName, "Your family"], [others, "", "Other families"]].forEach(([count, owner, label]) => {
-        if (count === 0) return;
-        const chip = document.createElement("div");
-        chip.className = "harvester-chip";
-        const swatch = document.createElement("span");
-        swatch.className = "harvester-chip-swatch";
-        swatch.style.background = colorForHousehold(owner);
-        const countText = document.createElement("span");
-        countText.className = "harvester-chip-count";
-        countText.textContent = count;
-        chip.appendChild(swatch);
-        chip.appendChild(countText);
-        chip.title = label + ": " + count;
-        container.appendChild(chip);
+        for (let i = 0; i < count; i++) {
+          const dot = document.createElement("span");
+          dot.className = "harvester-small-dot";
+          dot.style.background = colorForHousehold(owner);
+          dot.title = label;
+          container.appendChild(dot);
+        }
       });
     } else if (container) {
       container.remove();
@@ -526,9 +533,54 @@ const handlers = {
     renderMemberTable(m.harvesters || [], m.round);
     resultCard.classList.remove("hidden");
   },
+  state(m) {
+    // Sent by the server when the player comes back (reload, lost connection) into a started game:
+    // restore the role, the board, the current turn and the results
+    handlers.gameStarted({ payload: { role: m.role } });
+    setHarvesterCount(m.harvesterCount);
+    applyBiomass(m.biomass);
+    applyBirds(m.birds);
+    applyProtection(m.protection);
+    applyHarvesters(m.harvesters.map(h => [
+      { household: myName, count: h.mine },
+      { household: "", count: h.others }].filter(e => e.count > 0)));
+    if (m.finalResults) return handlers.gameOver(m.finalResults);
+    if (m.roundResult) handlers.roundResult(m.roundResult);
+    if (m.turn) {
+      // The server sends 'state' to everyone after each move: never re-send automatically here,
+      // or every move would make all players send theirs again, endlessly.
+      // Re-send only if the server says it does not have our move (e.g. it was lost with the connection).
+      const sent = lastAction && lastAction.round === m.round && lastAction.turn === m.turn ? lastAction : null;
+      lastAction = null;
+      handlers.round({ round: m.round });
+      handlers.turn({ round: m.round, turn: m.turn, seconds: m.secondsLeft });
+      lastAction = sent;
+      if (m.submitted) lockHarvesters();
+      else if (sent) { sendNow(sent.payload); lockHarvesters(); }
+    } else if (m.phase === "rangerDone" || m.phase === "householdsDone") {
+      handlers.round({ round: m.round });
+      handlers.turnEnded();
+    } else if (m.phase === "newBiomass") {
+      handlers.round({ round: m.round });
+    } else if (m.round > 0) {
+      handlers.roundEnded({ round: m.round });
+    }
+  },
+  sessionStarted(m) {
+    // Same role and family, new board and scores: start again from round 1
+    currentRound = null;
+    lastAction = null;
+    resetRoundSelections();
+    unlock();
+    finalResults.classList.add("hidden");
+    resultCard.classList.add("hidden");
+    gridEl.classList.remove("hidden");
+    pauseTurns("Session " + m.session, "Same role and family, new board. Waiting for the game master to start round 1...");
+  },
   gameOver(m) {
     locked = true;
-    pauseTurns("Game over", "The game is over. Thank you for playing!");
+    if (m.session === 1) pauseTurns("Session 1 is over", "Here are your results. Session 2 will start soon.");
+    else pauseTurns("Game over", "The game is over. Thank you for playing!");
     const families = m.families || [];
     const roundLabels = Array.from({ length: m.rounds }, (_, i) => "R" + (i + 1));
     gridEl.classList.add("hidden");
@@ -554,7 +606,12 @@ const handlers = {
   rejected(m) {
     if (reasonOf(m) !== "name-taken") return;
     leaveGame();
-    show("error", "This name is already taken. Choose another.");
+    show("error", "This name is already used by a connected player. Choose another name.");
+  },
+  replaced() {
+    // The same name was opened in another tab of this browser: stop here so the tabs don't fight
+    leaveGame();
+    show("error", "This name was opened in another tab or window.");
   },
   error(m) { show("error", "Error: " + reasonOf(m)); }
 };
@@ -569,6 +626,15 @@ function unlock() {
 
 const SAVED_NAME_KEY = "cm.name";
 const SAVED_AT_KEY = "cm.nameSavedAt";
+
+// Identifies this phone. A player can always come back from the same phone (reload,
+// closed tab, network drop); nobody else can take the name while the player is connected.
+let playerToken = "";
+try { playerToken = localStorage.getItem("cm.playerToken") || ""; } catch (e) { }
+if (!playerToken) {
+  playerToken = Array.from(crypto.getRandomValues(new Uint32Array(4)), n => n.toString(16)).join("");
+  try { localStorage.setItem("cm.playerToken", playerToken); } catch (e) { }
+}
 const REJOIN_WINDOW_MS = 6 * 60 * 60 * 1000;
 const HEARTBEAT_MS = 5000;
 const DEAD_AFTER_MS = 15000;
@@ -665,7 +731,7 @@ function connect(name) {
     if (socket !== ws) return;
     reconnectAttempts = 0;
     lastMessageAt = Date.now();
-    socket.send(JSON.stringify({ type: "bonjour", name: name }));
+    socket.send(JSON.stringify({ type: "bonjour", name: name, token: playerToken }));
     startHeartbeat();
   });
   socket.addEventListener("message", (ev) => {
