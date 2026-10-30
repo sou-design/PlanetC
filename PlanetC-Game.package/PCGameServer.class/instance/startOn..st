@@ -3,7 +3,7 @@ startOn: aPortNumber
 	| wsDelegate dispatcher |
 	server ifNotNil: [ self error: 'Already running!' ].
 	self stopOtherServersOn: aPortNumber.
-
+	game newGame.
 	dispatcher := ZnDispatcherDelegate new.
 	wsDelegate := ZnWebSocketDelegate map: '/' to: [ :ws | self handleWebSocket: ws ].
 
