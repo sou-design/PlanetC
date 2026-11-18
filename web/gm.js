@@ -3,7 +3,8 @@ const loginEl = byId("gmLogin");
 const dashboardEl = byId("gmDashboard");
 const form = byId("gmForm");
 const orgInput = byId("gmOrg");
-const descInput = byId("gmDesc");
+const businessInput = byId("gmBusiness");
+const audienceInput = byId("gmAudience");
 const errorEl = byId("gmError");
 const identityEl = byId("gmIdentity");
 const connectionEl = byId("gmConnection");
@@ -21,7 +22,8 @@ const startHint = byId("startHint");
 
 const PLAYERS_REFRESH_MS = 2000;
 let gmOrg = "";
-let gmDesc = "";
+let gmBusiness = "";
+let gmAudience = "";
 let signedIn = false;
 let stopped = false;
 let accepted = false;
@@ -52,7 +54,7 @@ if (!gmToken) {
 function showDashboard() {
   signedIn = true;
   stopped = false;
-  identityEl.textContent = gmDesc ? gmOrg + " \u00b7 " + gmDesc : gmOrg;
+  identityEl.textContent = [gmOrg, gmBusiness, gmAudience].filter(Boolean).join(" \u00b7 ");
   loginEl.classList.add("hidden");
   dashboardEl.classList.remove("hidden");
   document.title = "Game Master - " + gmOrg;
@@ -405,7 +407,7 @@ function renderRound() {
   nextSessionBtn.classList.add("hidden");
 
   const reviewing = game.phase === "householdsDone";
-  const showBiomassNext = (game.phase === "ready" && game.round > 1) || game.phase === "ended";
+  const showBiomassNext = game.phase === "ready" && game.round > 1;
   byId("turnField").classList.toggle("hidden", reviewing || showBiomassNext);
   movesBtn.classList.toggle("hidden", !reviewing);
   if (!reviewing) { movesPanel.classList.add("hidden"); movesBtn.textContent = "Modify harvesters"; }
@@ -416,7 +418,7 @@ function renderRound() {
     if (!game.startedAt) return setPhaseText(label + " in progress.");
     const left = game.durationMs - (Date.now() - game.startedAt);
     if (left > 0) setPhaseText(label + ":", formatTime(left) + " left");
-    else setPhaseText(game.phase === "rangerTurn" ? "Park manager turn: time is up." : "Households turn: time is up. Resolving the round...");
+    else setPhaseText(game.phase === "rangerTurn" ? "Park manager turn: time is up." : "Households turn: time is up.");
     return;
   }
 
@@ -426,34 +428,40 @@ function renderRound() {
 
   if (game.phase === "rangerDone") {
     roundTitle.textContent = roundLabel(next);
-    setPhaseText("The park manager turn is over. Set the time of the households turn");
+    setPhaseText("The park manager has played. Next: the households turn.");
     proceedBtn.textContent = game.waiting ? "Starting..." : "Start the households turn";
     finishBtn.classList.add("hidden");
   } else if (game.phase === "householdsDone") {
     roundTitle.textContent = roundLabel(next);
-    setPhaseText("The households have played. You can modify their harvesters, then resolve the round.");
+    setPhaseText("The households have played. Next: the harvest.");
     proceedBtn.textContent = game.waiting ? "Resolving..." : "Resolve round " + next;
     finishBtn.classList.add("hidden");
   } else if (game.phase === "newBiomass") {
-        roundTitle.textContent = roundLabel(next);
-    setPhaseText("Set the time of the park manager turn");    proceedBtn.textContent = game.waiting ? "Starting..." : "Start the park manager turn";
+    roundTitle.textContent = roundLabel(next);
+    setPhaseText("Next: the park manager turn.");
+    proceedBtn.textContent = game.waiting ? "Starting..." : "Start the park manager turn";
+    finishBtn.classList.add("hidden");
+  } else if (game.phase === "regenerated") {
+    roundTitle.textContent = "Round " + (next - 1) + ": biomass regeneration";
+    setPhaseText("The biomass has regenerated. Next: round " + next + ", park manager turn.");
+    proceedBtn.textContent = game.waiting ? "Starting..." : "Start round " + next + ": park manager turn";
     finishBtn.classList.add("hidden");
   } else if (game.phase === "ready") {
     roundTitle.textContent = next === 1 ? "Ready to play" : "Round " + (next - 1) + " is over";
     setPhaseText(next === 1
-      ? "Round 1 has no park manager turn. Set the time of the households turn, then click Proceed."
-      : "Look at the new biomass with the players, then start round " + next + ".");
-    proceedBtn.textContent = game.waiting ? "Starting..."
-      : (turn === "ranger" ? "Start round " + next : "Start round " + next + ": households turn");
+      ? "Round 1 starts with the households turn."
+      : "Harvest and newborn birds of round " + (next - 1) + ". Next: the biomass regeneration.");
+    proceedBtn.textContent = game.waiting ? "Working..."
+      : (next === 1 ? "Start round 1: households turn" : "Show the biomass regeneration");
     finishBtn.classList.toggle("hidden", next === 1);
   } else {
     roundTitle.textContent = game.over
       ? "Session " + game.session + " is over after " + (next - 1) + (next - 1 === 1 ? " round" : " rounds")
       : "All planned rounds are played (" + (next - 1) + ")";
     setPhaseText(game.over
-      ? "Players see their results. You can still add a round."
-      : "Finish the session, or add an extra round.");
-    proceedBtn.textContent = game.waiting ? "Starting..." : "Play an extra round (round " + next + ")";
+      ? "Final results are on the players' screens."
+      : "All planned rounds have been played.");
+    proceedBtn.textContent = game.waiting ? "Starting..." : "Play an extra round (round " + next + "): park manager turn";
     finishBtn.classList.toggle("hidden", game.over);
     nextSessionBtn.classList.toggle("hidden", !game.over || game.session !== 1);
   }
@@ -794,7 +802,7 @@ const handlers = {
   roundEnded(m) {
     if (m.maxRounds != null) game.maxRounds = m.maxRounds;
     Object.assign(game, { round: m.round + 1, waiting: false, startedAt: 0 });
-    game.phase = m.round >= game.maxRounds ? "ended" : "ready";
+    game.phase = "ready";
     gameStatus.textContent = "Round " + m.round + " is over";
     renderRound();
   },
@@ -816,11 +824,19 @@ const handlers = {
         (m.ranger || []).map(r => [r.round, r.protected.map(cellName).join(", ") || "-", r.newborns])));
     selectTab("results");
   },
+  regenerated(m) {
+    if (m.maxRounds != null) game.maxRounds = m.maxRounds;
+    Object.assign(game, { phase: m.round >= game.maxRounds ? "ended" : "regenerated", round: m.round + 1, waiting: false, startedAt: 0 });
+    gameStatus.textContent = "Round " + m.round + ": biomass regeneration";
+    renderRound();
+  },
   gmProceed(m) {
     if (m.result === "ok") return;
     game.waiting = false;
     renderRound();
-    setPhaseText("A turn is already running, or the game has not started.");
+    setPhaseText(String(m.result || "").startsWith("Error")
+      ? m.result + " (see the Transcript in Pharo)"
+      : "A turn is already running, or the game has not started.");
   },
   gmFinish(m) {
     if (m.result === "ok") return;
@@ -910,28 +926,42 @@ function disconnect() {
 form.addEventListener("submit", (e) => {
   e.preventDefault();
   gmOrg = orgInput.value.trim();
-  gmDesc = descInput.value.trim();
-  if (!gmOrg) {
-    errorEl.textContent = "Please enter your organization.";
-    return;
+  gmBusiness = businessInput.value;
+  gmAudience = audienceInput.value;
+  if (gmOrg.length < 3) {
+    errorEl.textContent = "The organization name must have at least 3 letters.";
+    return orgInput.focus();
   }
+  if (!gmBusiness) {
+    errorEl.textContent = "Please choose the type of business.";
+    return businessInput.focus();
+  }
+  if (!gmAudience) {
+    errorEl.textContent = "Please choose public or professional.";
+    return audienceInput.focus();
+  }
+  errorEl.textContent = "";
   save(sessionStorage, "cm.gm.org", gmOrg);
-  save(sessionStorage, "cm.gm.desc", gmDesc);
+  save(sessionStorage, "cm.gm.business", gmBusiness);
+  save(sessionStorage, "cm.gm.audience", gmAudience);
   showDashboard();
 });
 
 byId("gmSignOut").addEventListener("click", () => {
   forget(sessionStorage, "cm.gm.org");
-  forget(sessionStorage, "cm.gm.desc");
+  forget(sessionStorage, "cm.gm.business");
+  forget(sessionStorage, "cm.gm.audience");
   form.reset();
   showLogin();
 });
 
 orgInput.value = load(sessionStorage, "cm.gm.org");
-descInput.value = load(sessionStorage, "cm.gm.desc");
-if (orgInput.value) {
+businessInput.value = load(sessionStorage, "cm.gm.business");
+audienceInput.value = load(sessionStorage, "cm.gm.audience");
+if (orgInput.value && businessInput.value && audienceInput.value) {
   gmOrg = orgInput.value;
-  gmDesc = descInput.value;
+  gmBusiness = businessInput.value;
+  gmAudience = audienceInput.value;
   showDashboard();
 } else {
   showLogin();

@@ -40,7 +40,9 @@ button:disabled { opacity: .5; cursor: not-allowed }
 .error { color: #b00020; margin-top: .75rem }
 .ok { color: #006400; margin-top: .75rem }
 .status { font-size: .85rem; color: #555; margin-top: .5rem }
-#sendBtn, #protectBtn { width: 100%; padding: .8rem; font-size: 1rem; margin-top: .5rem }
+#sendBtn, #protectBtn { display: block; min-width: 60%; padding: .8rem 1.5rem; font-size: 1rem; margin: .75rem auto 0 }
+#sendBtn.hidden, #protectBtn.hidden { display: none }
+#game .status { text-align: center }
 pre { background: #f6f6f6; padding: .75rem; overflow: auto; max-height: 160px }
 .cell { container-type: size }
 .harvester-dots {
@@ -109,11 +111,27 @@ pre { background: #f6f6f6; padding: .75rem; overflow: auto; max-height: 160px }
 .picker-backdrop.hidden { display: none }
 .picker {
   background: #fff; border-radius: 10px; padding: 1rem;
-  width: 100%; max-width: 320px;
+  width: 100%; max-width: 360px;
+  max-height: calc(100dvh - 2rem); max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  display: flex; flex-direction: column;
   box-shadow: 0 8px 24px rgba(0,0,0,.25);
 }
-.picker-title { font-weight: bold; margin: 0 0 .75rem }
-.picker-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1rem }
+.picker-title { font-weight: bold; margin: 0 0 .25rem; text-align: center }
+.picker-help { margin: 0 0 .75rem; font-size: .85rem; color: #555; text-align: center }
+.picker-list {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: .4rem;
+  margin-bottom: .75rem; overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; padding: 2px;
+}
+.picker-chip {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  padding: .4rem .2rem; border-radius: 8px; border: 1px solid #ccc; background: #f2f2f2; color: #333;
+  font-size: .9rem; line-height: 1.1; min-height: 48px; cursor: pointer;
+}
+.picker-chip small { font-size: .7rem; color: #666 }
+.picker-chip.here { background: #2a78d6; border-color: #1d5ea8; color: #fff }
+.picker-chip.here small { color: #e6f0fb }
+.picker-chip.elsewhere { background: #fff; border: 2px solid #2a78d6; color: #1d5ea8 }
 .picker-row {
   display: flex; align-items: center; gap: .6rem;
   padding: .5rem; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;
@@ -128,7 +146,7 @@ pre { background: #f6f6f6; padding: .75rem; overflow: auto; max-height: 160px }
   font-size: .75rem; color: #08380f; font-weight: bold;
 }
 .picker-where { font-size: .85rem; color: #555 }
-#pickerDone { width: 100% }
+#pickerDone { display: block; min-width: 60%; margin: 0 auto; flex: none }
 #resultCard { margin: 1rem 0; padding: .8rem 1rem; border-radius: 8px; background: #eef7ef;
               border: 1px solid #b7dcbc; color: #1d4d27 }
 #resultGain { margin: 0 0 .25rem; font-size: 1.15rem; font-weight: 600 }

@@ -13,6 +13,7 @@ gameEl.innerHTML = `
   <div class="picker-backdrop hidden" id="pickerBackdrop">
     <div class="picker" id="picker" role="dialog" aria-modal="true">
       <p class="picker-title" id="pickerTitle"></p>
+      <p class="picker-help" id="pickerHelp"></p>
       <div class="picker-list" id="pickerList"></div>
       <button type="button" id="pickerDone">Done</button>
     </div>
@@ -45,6 +46,7 @@ const statusLine = byId("statusLine");
 const countdownLine = byId("countdownLine");
 const pickerBackdrop = byId("pickerBackdrop");
 const pickerTitle = byId("pickerTitle");
+const pickerHelp = byId("pickerHelp");
 const pickerList = byId("pickerList");
 const pickerDone = byId("pickerDone");
 const resultCard = byId("resultCard");
@@ -80,7 +82,7 @@ const protectedZones = new Set();
 
 
 function colorForHousehold(name) {
-  return name === myName ? "#36e05c" : "#000000";
+  return name === myName ? "#2a78d6" : "#000000";
 }
 
 function myColor() {
@@ -266,32 +268,26 @@ function closePicker() {
 
 function renderPicker() {
   if (pickerCellId == null) return;
-  pickerTitle.textContent = "Harvesters on cell " + cellName(pickerCellId);
+  const here = harvesterPlacement.filter(c => c === pickerCellId).length;
+  const home = harvesterPlacement.filter(c => c == null).length;
+  pickerTitle.textContent = "Cell " + cellName(pickerCellId) + ": " + here + " harvester" + (here === 1 ? "" : "s");
+  pickerHelp.textContent = "Tap a harvester to put it here or take it back. " + home + " at home.";
   pickerList.innerHTML = "";
+  // One button per harvester, in a compact grid: blue = here, outlined = on another cell, grey = at home
   harvesterPlacement.forEach((placedOn, h) => {
-    const row = document.createElement("label");
-    row.className = "picker-row";
-    const box = document.createElement("input");
-    box.type = "checkbox";
-    box.checked = placedOn === pickerCellId;
-    box.addEventListener("change", () => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "picker-chip" + (placedOn === pickerCellId ? " here" : placedOn == null ? "" : " elsewhere");
+    chip.setAttribute("aria-pressed", String(placedOn === pickerCellId));
+    chip.innerHTML = "<b>H" + (h + 1) + "</b><small>" +
+      (placedOn === pickerCellId ? "here" : placedOn == null ? "home" : cellName(placedOn)) + "</small>";
+    chip.addEventListener("click", () => {
       if (!canMoveHarvesters()) { closePicker(); return; }
-      if (box.checked) placeHarvester(h, pickerCellId);
-      else unplaceHarvester(h);
+      if (placedOn === pickerCellId) unplaceHarvester(h);
+      else placeHarvester(h, pickerCellId);
       renderPicker();
     });
-    const swatch = document.createElement("span");
-    swatch.className = "picker-swatch";
-    swatch.textContent = "H" + (h + 1);
-    const where = document.createElement("span");
-    where.className = "picker-where";
-    where.textContent = placedOn == null ? "not placed"
-      : placedOn === pickerCellId ? "here"
-      : "on cell " + cellName(placedOn) + " (will move)";
-    row.appendChild(box);
-    row.appendChild(swatch);
-    row.appendChild(where);
-    pickerList.appendChild(row);
+    pickerList.appendChild(chip);
   });
 }
 
@@ -493,8 +489,8 @@ const handlers = {
     resetRoundSelections();
     unlock();
     document.querySelectorAll(".harvester-dot").forEach(d => d.classList.remove("locked"));
-        if (m.round > 1) pauseTurns("Round " + m.round, "The game master will start the round.");
-        else pauseTurns();
+    if (m.round > 1) pauseTurns("Round " + m.round, "The game master will start the round.");
+    else pauseTurns();
   },
   turn(m) {
     resultCard.classList.add("hidden");
@@ -515,7 +511,12 @@ const handlers = {
   },
   roundEnded(m) {
     locked = true;
-            pauseTurns("Round " + m.round + " is over", "Look at the new biomass on the grid. Waiting for the game master to start the next round...");  },
+    pauseTurns("Round " + m.round + " is over", "Look at your harvest and the newborn birds. Waiting for the game master...");
+  },
+  regenerated(m) {
+    locked = true;
+    pauseTurns("Round " + m.round + ": biomass regeneration", "Look at the new biomass on the grid. Waiting for the game master...");
+  },
   roundResult(m) {
 
     resultGain.textContent = "Round " + m.round + ": your family harvested " + m.gain;
@@ -547,6 +548,8 @@ const handlers = {
       handlers.turnEnded();
     } else if (m.phase === "newBiomass") {
       handlers.round({ round: m.round });
+    } else if (m.phase === "regenerated") {
+      handlers.regenerated({ round: m.round });
     } else if (m.round > 0) {
       handlers.roundEnded({ round: m.round });
     }
@@ -654,14 +657,16 @@ changeNameBtn.addEventListener("click", () => {
   show("", "");
 });
 
+// The name is kept in localStorage (like the player token) so that it survives
+// going back, closing the tab or the phone reloading the page: the player rejoins automatically.
 function readStorage(key) {
-  try { return sessionStorage.getItem(key); } catch (e) { return null; }
+  try { return localStorage.getItem(key); } catch (e) { return null; }
 }
 
 function writeStorage(key, value) {
   try {
-    if (value == null) sessionStorage.removeItem(key);
-    else sessionStorage.setItem(key, value);
+    if (value == null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
   } catch (e) { }
 }
 
@@ -789,8 +794,8 @@ function leaveGame() {
 byId("login").addEventListener("submit", (e) => {
   e.preventDefault();
   const name = nameInput.value.trim();
-  if (!name) {
-    show("error", "Please enter a name");
+  if (name.length < 3) {
+    show("error", "Your name must have at least 3 letters");
     return;
   }
   reconnectAttempts = 0;

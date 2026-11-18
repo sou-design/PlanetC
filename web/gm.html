@@ -9,13 +9,27 @@
 <body>
 
 <section id="gmLogin">
-  <h1>Game Master</h1>
-  <form id="gmForm">
-    <label>Organization
-      <input id="gmOrg" type="text" required minlength="2" maxlength="60" autocomplete="organization" />
+  <h1>Describe the organization</h1>
+  <form id="gmForm" novalidate>
+    <label>Organization name
+      <input id="gmOrg" type="text" required minlength="3" maxlength="60" autocomplete="organization" />
     </label>
-    <label>Description (optional)
-      <input id="gmDesc" type="text" maxlength="120" autocomplete="off" />
+    <label>Type of business
+      <select id="gmBusiness" required>
+        <option value="">Choose...</option>
+        <option>Education</option>
+        <option>Private company</option>
+        <option>General public</option>
+        <option>Officials</option>
+        <option>Others</option>
+      </select>
+    </label>
+    <label>Public or professional
+      <select id="gmAudience" required>
+        <option value="">Choose...</option>
+        <option>Public</option>
+        <option>Professional</option>
+      </select>
     </label>
     <button type="submit">Continue</button>
     <p id="gmError"></p>

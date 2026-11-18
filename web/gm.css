@@ -4,7 +4,7 @@ body { font-family: system-ui, sans-serif; margin: 0; background: #fafafa; color
 #gmLogin { max-width: 420px; margin: 6rem auto; padding: 0 1rem }
 #gmLogin form { display: flex; flex-direction: column; gap: .75rem }
 #gmLogin label { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem }
-#gmLogin input { padding: .6rem .8rem; font-size: 1rem }
+#gmLogin input, #gmLogin select { padding: .6rem .8rem; font-size: 1rem }
 #gmLogin button { padding: .6rem 1rem; font-size: 1rem; cursor: pointer }
 #gmError { color: #b00020; min-height: 1.2em }
 
