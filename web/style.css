@@ -4,11 +4,23 @@ form { display: flex; gap: .5rem; margin-bottom: 1rem }
 input[type=text] { flex: 1; padding: .6rem .8rem; font-size: 1rem }
 button { padding: .6rem 1rem; font-size: 1rem; cursor: pointer }
 button:disabled { opacity: .5; cursor: not-allowed }
+.board {
+  display: grid;
+  grid-template-columns: 1.4em 1fr;
+  grid-template-rows: auto 1fr;
+  margin: 1rem 0;
+}
+.board-cols { display: grid; grid-template-columns: repeat(5, 1fr); padding: 0 1px }
+.board-rows { display: grid; grid-template-rows: repeat(4, 1fr); padding: 1px 0 }
+.board-cols span, .board-rows span {
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; font-weight: 600; color: #555;
+}
+.board-cols span { padding-bottom: .2rem }
 .grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 0;
-  margin: 1rem 0;
   border: 1px solid #999;
   border-radius: 6px;
   overflow: hidden;
@@ -24,82 +36,69 @@ button:disabled { opacity: .5; cursor: not-allowed }
 .cell.protected-shared { outline: 3px solid #b00020; outline-offset: -3px }
 .cell.protectable, .cell.pickable { cursor: pointer }
 .cell.pickable:hover { outline: 2px solid #333; outline-offset: -2px }
-.harvester-tray {
-  display: flex; gap: 10px; margin: .75rem 0;
-  min-height: 40px; align-items: center;
-}
-.harvester-token {
-  width: 28px; height: 28px; border-radius: 50%;
-  border: 2px solid rgba(0,0,0,.3);
-  display: flex; align-items: center; justify-content: center;
-  font-size: .7rem; color: #fff; font-weight: bold;
-}
-.harvester-token.placed { opacity: .35 }
-.harvester-token.locked { opacity: .35 }
-.harvester-dot {
-  width: 22px; height: 22px; border-radius: 50%;
-  border: 2px solid rgba(0,0,0,.3);
-  display: flex; align-items: center; justify-content: center;
-  font-size: .65rem; color: #fff; font-weight: bold;
-}
 .hidden { display: none }
 .error { color: #b00020; margin-top: .75rem }
 .ok { color: #006400; margin-top: .75rem }
 .status { font-size: .85rem; color: #555; margin-top: .5rem }
 #sendBtn, #protectBtn { width: 100%; padding: .8rem; font-size: 1rem; margin-top: .5rem }
 pre { background: #f6f6f6; padding: .75rem; overflow: auto; max-height: 160px }
+.cell { container-type: size }
 .harvester-dots {
   position: absolute;
-  bottom: 4px;
-  left: 4px;
-  right: 4px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
+  top: 0; bottom: 0; left: 6px; right: 6px;
+  left: 9cqw;
+  right: 9cqw;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 9px);
+  grid-template-columns: repeat(auto-fit, round(down, 12cqw, 1px));
+  justify-content: center;
+  align-content: center;
+  gap: 4px;
+  gap: round(down, 5cqw, 1px);
 }
 .harvester-small-dot {
+  flex: none;
   width: 9px;
   height: 9px;
+  width: round(down, 12cqw, 1px);
+  height: round(down, 12cqw, 1px);
   border-radius: 50%;
-  border: 1px solid #fff;
+  background-image: radial-gradient(circle at 35% 30%, rgba(255,255,255,.5), rgba(255,255,255,0) 55%);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.25), 0 1px 2px rgba(0,0,0,.4);
+}
+.harvester-small-dot.mine {
+  box-shadow: 0 0 0 1px rgba(0,0,0,.75), 0 1px 2px rgba(0,0,0,.4);
 }
 
 .icon-bird { background-image: url('/icons/bird.png'); }
 .icon-poussin { background-image: url('/icons/poussin.png'); }
 .bird-icon-plain {
   position: absolute;
-  top: 4px;
-  left: 4px;
-  width: 16px;
-  height: 16px;
+  z-index: 1;
+  top: 6%;
+  left: 6%;
+  width: 30%;
+  height: 30%;
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
-  display: inline-block;
 }
-
-.newborn-chip {
+.newborns {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  z-index: 1;
+  top: 8%;
+  right: 6%;
   display: flex;
-  align-items: center;
-  gap: 3px;
-  background: rgba(255,255,255,0.9);
-  border-radius: 10px;
-  padding: 2px 6px 2px 3px;
-  font-size: 11px;
-  line-height: 1.2;
+  gap: 2px;
 }
-
-.bird-chip-icon {
-  width: 14px;
-  height: 14px;
+.poussin {
+  width: 15cqw;
+  height: 15cqw;
+  min-width: 10px;
+  min-height: 10px;
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
-  display: inline-block;
 }
 .picker-backdrop {
   position: fixed; inset: 0; z-index: 10;
@@ -121,10 +120,12 @@ pre { background: #f6f6f6; padding: .75rem; overflow: auto; max-height: 160px }
 }
 .picker-row input { width: 20px; height: 20px; margin: 0 }
 .picker-swatch {
-  width: 28px; height: 28px; border-radius: 50%;
-  border: 2px solid rgba(0,0,0,.3);
+  flex: none;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: #36e05c;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.75), 0 1px 2px rgba(0,0,0,.3);
   display: flex; align-items: center; justify-content: center;
-  font-size: .7rem; color: #fff; font-weight: bold;
+  font-size: .75rem; color: #08380f; font-weight: bold;
 }
 .picker-where { font-size: .85rem; color: #555 }
 #pickerDone { width: 100% }
@@ -145,8 +146,8 @@ pre { background: #f6f6f6; padding: .75rem; overflow: auto; max-height: 160px }
 .member-token {
   display: inline-flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; border-radius: 50%;
-  border: 2px solid rgba(0,0,0,.3);
-  font-size: .7rem; color: #fff; font-weight: bold;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.75);
+  font-size: .7rem; color: #08380f; font-weight: bold;
 }
 
 #finalResults table { border-collapse: collapse; width: 100%; background: #fff; margin-bottom: 1rem }
@@ -168,4 +169,3 @@ pre { background: #f6f6f6; padding: .75rem; overflow: auto; max-height: 160px }
   color: #555; text-decoration: underline; font-size: .9rem;
 }
 .link-button.hidden { display: none }
-.cell .cell-id { position: absolute; top: 3px; right: 5px; font-size: 10px; color: rgba(0,0,0,.35) }

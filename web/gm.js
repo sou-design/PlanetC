@@ -35,12 +35,14 @@ let lastPlayers = null;
 let startAskedAt = 0;
 let joinUrlEdited = false;
 
+function cellName(id) {
+  return "ABCDE"[(id - 1) % 5] + (Math.floor((id - 1) / 5) + 1);
+}
+
 function load(store, key) { try { return store.getItem(key) || ""; } catch (e) { return ""; } }
 function save(store, key, value) { try { store.setItem(key, value); } catch (e) {} }
 function forget(store, key) { try { store.removeItem(key); } catch (e) {} }
 
-// Identifies this tab. A reload keeps it; another tab, window or device gets a new one
-// and is refused while a game master is connected.
 let gmToken = load(sessionStorage, "cm.gm.token");
 if (!gmToken) {
   gmToken = Array.from(crypto.getRandomValues(new Uint32Array(4)), n => n.toString(16)).join("");
@@ -231,8 +233,8 @@ startBtn.addEventListener("click", () => {
   send({ type: "gmStart" });
 });
 
-const tabs = { lobby: byId("tabLobby"), game: byId("tabGame"), results: byId("tabResults") };
-const panels = { lobby: byId("panelLobby"), game: byId("panelGame"), results: byId("panelResults") };
+const tabs = { lobby: byId("tabLobby"), game: byId("tabGame"), results: byId("tabResults"), charts: byId("tabCharts") };
+const panels = { lobby: byId("panelLobby"), game: byId("panelGame"), results: byId("panelResults"), charts: byId("panelCharts") };
 let currentTab = "lobby";
 
 function selectTab(name) {
@@ -256,6 +258,30 @@ function setTabAlert(name, on) {
 tabs.lobby.addEventListener("click", () => selectTab("lobby"));
 tabs.game.addEventListener("click", () => selectTab("game"));
 tabs.results.addEventListener("click", () => selectTab("results"));
+tabs.charts.addEventListener("click", () => selectTab("charts"));
+
+const chartData = { families: [], rounds: 0, ranger: [] };
+let gmCharts = null;
+const shareChartsBtn = byId("shareChartsBtn");
+const shareChartsHint = byId("shareChartsHint");
+
+function updateCharts(m) {
+  if (m.families) chartData.families = m.families;
+  if (m.rounds != null) chartData.rounds = m.rounds;
+  if (m.ranger) chartData.ranger = m.ranger;
+  const ready = chartData.families.length > 0 && chartData.rounds > 0;
+  byId("chartsEmpty").classList.toggle("hidden", ready);
+  byId("chartsWrap").classList.toggle("hidden", !ready);
+  if (ready && window.PlanetCharts) {
+    if (!gmCharts) gmCharts = PlanetCharts.mount(byId("gmCharts"));
+    gmCharts.update(chartData);
+  }
+}
+
+shareChartsBtn.addEventListener("click", () => {
+  send({ type: "gmShowCharts" });
+  shareChartsHint.textContent = "Charts sent to the players (after round " + chartData.rounds + ").";
+});
 
 const resultsEmpty = byId("resultsEmpty");
 const resultsWrap = byId("resultsWrap");
@@ -305,6 +331,7 @@ function renderResults(families, rounds) {
   resultsSummary.textContent = "After " + played + (played === 1 ? " round" : " rounds") + ": "
     + (best > 0 ? leaders.join(", ") + (leaders.length > 1 ? " lead with " : " leads with ") + best : "no harvest yet");
 }
+
 
 const gameNotStarted = byId("gameNotStarted");
 const roundPanel = byId("roundPanel");
@@ -399,7 +426,7 @@ function renderRound() {
 
   if (game.phase === "rangerDone") {
     roundTitle.textContent = roundLabel(next);
-    setPhaseText("The park manager turn is over. Set the time of the households turn, then click Proceed.");
+    setPhaseText("The park manager turn is over. Set the time of the households turn");
     proceedBtn.textContent = game.waiting ? "Starting..." : "Start the households turn";
     finishBtn.classList.add("hidden");
   } else if (game.phase === "householdsDone") {
@@ -408,17 +435,16 @@ function renderRound() {
     proceedBtn.textContent = game.waiting ? "Resolving..." : "Resolve round " + next;
     finishBtn.classList.add("hidden");
   } else if (game.phase === "newBiomass") {
-    roundTitle.textContent = roundLabel(next) + ": new biomass";
-    setPhaseText("Look at the new biomass with the players. Set the time of the park manager turn, then click Proceed.");
-    proceedBtn.textContent = game.waiting ? "Starting..." : "Start the park manager turn";
+        roundTitle.textContent = roundLabel(next);
+    setPhaseText("Set the time of the park manager turn");    proceedBtn.textContent = game.waiting ? "Starting..." : "Start the park manager turn";
     finishBtn.classList.add("hidden");
   } else if (game.phase === "ready") {
     roundTitle.textContent = next === 1 ? "Ready to play" : "Round " + (next - 1) + " is over";
     setPhaseText(next === 1
       ? "Round 1 has no park manager turn. Set the time of the households turn, then click Proceed."
-      : "Show the new biomass to the players before round " + next + " starts.");
+      : "Look at the new biomass with the players, then start round " + next + ".");
     proceedBtn.textContent = game.waiting ? "Starting..."
-      : (turn === "ranger" ? "Show the new biomass" : "Start round " + next + ": households turn");
+      : (turn === "ranger" ? "Start round " + next : "Start round " + next + ": households turn");
     finishBtn.classList.toggle("hidden", next === 1);
   } else {
     roundTitle.textContent = game.over
@@ -487,10 +513,7 @@ function ensureGrid(count) {
   for (let i = 0; i < count; i++) {
     const cell = document.createElement("div");
     cell.className = "cell";
-    const label = document.createElement("span");
-    label.className = "cell-id";
-    label.textContent = i + 1;
-    cell.appendChild(label);
+    cell.title = cellName(i + 1);
     gmGrid.appendChild(cell);
     cellEls.push(cell);
   }
@@ -522,7 +545,6 @@ function applyHarvesters(values) {
       cell.appendChild(container);
     }
     container.innerHTML = "";
-    // One small dot per harvester
     entries.forEach(entry => {
       householdsSeen.add(entry.household);
       for (let i = 0; i < entry.count; i++) {
@@ -552,15 +574,21 @@ function applyBirds(values) {
       cell.appendChild(adultIcon);
     } else if (adults === 0 && adultIcon) adultIcon.remove();
     if (adultIcon) adultIcon.title = adults + " adult bird(s)";
-    let chip = cell.querySelector(".newborn-chip");
+    let box = cell.querySelector(".newborns");
     if (newborns > 0) {
-      if (!chip) {
-        chip = document.createElement("div");
-        chip.className = "newborn-chip";
-        cell.appendChild(chip);
+      if (!box) {
+        box = document.createElement("div");
+        box.className = "newborns";
+        cell.appendChild(box);
       }
-      chip.innerHTML = "<span class=\"bird-chip-icon\"></span><span>" + Number(newborns) + "</span>";
-    } else if (chip) chip.remove();
+      box.innerHTML = "";
+      for (let k = 0; k < newborns; k++) {
+        const chick = document.createElement("span");
+        chick.className = "poussin";
+        box.appendChild(chick);
+      }
+      box.title = newborns + " newborn bird(s)";
+    } else if (box) box.remove();
   });
 }
 
@@ -615,7 +643,7 @@ function renderMoves(households) {
       for (let c = 1; c <= cellCount; c++) {
         const option = document.createElement("option");
         option.value = String(c);
-        option.textContent = "H" + (k + 1) + ": cell " + c;
+        option.textContent = "H" + (k + 1) + ": cell " + cellName(c);
         select.appendChild(option);
       }
       select.value = cellId == null ? "" : String(cellId);
@@ -698,7 +726,6 @@ const handlers = {
     updateStartButton();
   },
   gmPlayers(m) {
-    // The server is waiting for a new game but this page still shows an old one: start clean
     if (m.phase === "lobby" && game.phase !== "lobby") return location.reload();
     renderPlayers(m.players || [], m.roles || [], m.phase);
     updateStartButton(m.players || []);
@@ -773,6 +800,7 @@ const handlers = {
   },
   results(m) {
     renderResults(m.families || [], m.rounds);
+    updateCharts(m);
     setTabAlert("results", true);
   },
   gameOver(m) {
@@ -782,9 +810,10 @@ const handlers = {
     gameStatus.textContent = "Session " + game.session + " is over";
     renderRound();
     if (m.families) renderResults(m.families, m.rounds);
+    updateCharts(m);
     byId("rangerResults").replaceChildren(heading("Ranger results"),
       makeTable(["Round", "Protected zones", "Newborn birds"],
-        (m.ranger || []).map(r => [r.round, r.protected.join(", ") || "-", r.newborns])));
+        (m.ranger || []).map(r => [r.round, r.protected.map(cellName).join(", ") || "-", r.newborns])));
     selectTab("results");
   },
   gmProceed(m) {
@@ -806,9 +835,10 @@ const handlers = {
     showAlert("Session 2 could not start: " + m.result);
   },
   sessionStarted(m) {
-    // Same players and roles, new board and scores: start again from round 1
     Object.assign(game, { phase: "ready", round: 1, over: false, waiting: false, startedAt: 0,
                           session: m.session, maxRounds: m.maxRounds });
+    updateCharts({ families: [], rounds: 0, ranger: [] });
+    shareChartsHint.textContent = "Players see only the results table until you send the charts.";
     renderResults([], 0);
     byId("rangerResults").replaceChildren();
     gameStatus.textContent = "Session " + game.session;

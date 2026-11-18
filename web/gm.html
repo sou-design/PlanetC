@@ -34,6 +34,7 @@
     <button type="button" role="tab" id="tabLobby" aria-selected="true" aria-controls="panelLobby">Players &amp; QR code</button>
     <button type="button" role="tab" id="tabGame" aria-selected="false" aria-controls="panelGame">Grid</button>
     <button type="button" role="tab" id="tabResults" aria-selected="false" aria-controls="panelResults">Results</button>
+    <button type="button" role="tab" id="tabCharts" aria-selected="false" aria-controls="panelCharts">Charts</button>
   </nav>
   <main id="gmMain">
     <p id="gmAlert" class="hidden" role="alert"></p>
@@ -87,7 +88,12 @@
           <button type="button" id="birdsBtn" aria-pressed="false">Show birds</button>
           <button type="button" id="movesBtn" class="hidden">Modify harvesters</button>
         </div>
-        <div id="gmGrid"></div>
+        <div class="board">
+          <span></span>
+          <div class="board-cols"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span></div>
+          <div class="board-rows"><span>1</span><span>2</span><span>3</span><span>4</span></div>
+          <div id="gmGrid"></div>
+        </div>
         <div id="movesPanel" class="hidden">
           <h3>Harvesters of each family</h3>
           <p>Change where the harvesters of a family go this round, then click Save. Players see the change on the grid.</p>
@@ -105,6 +111,17 @@
       </div>
       <div id="rangerResults"></div>
     </section>
+    <section id="panelCharts" role="tabpanel" aria-labelledby="tabCharts" class="hidden">
+      <h2>Charts</h2>
+      <p id="chartsEmpty">Charts appear at the end of the first round.</p>
+      <div id="chartsWrap" class="hidden">
+        <div id="chartsShare">
+          <button type="button" id="shareChartsBtn">Show charts to players</button>
+          <span id="shareChartsHint">Players see only the results table until you send the charts.</span>
+        </div>
+        <div id="gmCharts"></div>
+      </div>
+    </section>
   </main>
 </section>
 
@@ -117,6 +134,7 @@ window.addEventListener("error", function (e) {
 });
 </script>
 <script src="/qrcode.js"></script>
+<script src="/charts.js"></script>
 <script src="/gm.js"></script>
 </body>
 </html>

@@ -4,8 +4,12 @@ gameEl.className = "hidden";
 gameEl.innerHTML = `
   <p id="roleLine"></p>
   <p id="instructions">Waiting for the round to begin...</p>
-  <div class="harvester-tray hidden" id="tray"></div>
-  <div class="grid" id="grid"></div>
+  <div class="board">
+    <span></span>
+    <div class="board-cols"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span></div>
+    <div class="board-rows"><span>1</span><span>2</span><span>3</span><span>4</span></div>
+    <div class="grid" id="grid"></div>
+  </div>
   <div class="picker-backdrop hidden" id="pickerBackdrop">
     <div class="picker" id="picker" role="dialog" aria-modal="true">
       <p class="picker-title" id="pickerTitle"></p>
@@ -23,6 +27,7 @@ gameEl.innerHTML = `
     <div id="memberScroll" class="hidden"><table id="memberTable"></table></div>
   </div>
   <div id="finalResults" class="hidden"></div>
+  <div id="playerCharts" class="hidden"></div>
 `;
 document.body.appendChild(gameEl);
 
@@ -33,7 +38,6 @@ const joinTitle = byId("joinTitle");
 const roleLine = byId("roleLine");
 const loginEl = byId("login");
 const gridEl = byId("grid");
-const trayEl = byId("tray");
 const instructions = byId("instructions");
 const sendBtn = byId("sendBtn");
 const protectBtn = byId("protectBtn");
@@ -49,7 +53,13 @@ const resultTotal = byId("resultTotal");
 const memberScroll = byId("memberScroll");
 const memberTable = byId("memberTable");
 const finalResults = byId("finalResults");
+const playerChartsEl = byId("playerCharts");
+let playerCharts = null;
 let pickerCellId = null;
+
+function cellName(id) {
+  return "ABCDE"[(id - 1) % 5] + (Math.floor((id - 1) / 5) + 1);
+}
 
 const COLUMNS = 5;
 const ROWS = 4;
@@ -70,7 +80,7 @@ const protectedZones = new Set();
 
 
 function colorForHousehold(name) {
-  return name === myName ? "#378ADD" : "#000000";
+  return name === myName ? "#36e05c" : "#000000";
 }
 
 function myColor() {
@@ -78,9 +88,7 @@ function myColor() {
 }
 
 function updateTrayColors() {
-  const color = myColor();
-  trayTokens.forEach(t => t.style.background = color);
-  document.querySelectorAll(".harvester-dot").forEach(d => d.style.background = color);
+  document.querySelectorAll(".harvester-dot").forEach(d => d.style.background = myColor());
 }
 
 let msgTimer = null;
@@ -108,7 +116,6 @@ function canProtectZones() {
 function resetRoundSelections() {
   harvesterPlacement.fill(null);
   document.querySelectorAll(".harvester-dot").forEach(d => d.remove());
-  trayTokens.forEach(t => t.classList.remove("placed"));
   protectedZones.clear();
   Object.values(cellEls).forEach(c => c.classList.remove("protect-selected"));
 }
@@ -148,7 +155,6 @@ function updateActionVisibility() {
     : "";
   if (myRole === "Household") {
     const myTurn = currentTurn === "households";
-    trayEl.classList.toggle("hidden", !myTurn || locked);
     sendBtn.classList.toggle("hidden", !myTurn || locked);
     protectBtn.classList.add("hidden");
     Object.values(cellEls).forEach(c => {
@@ -163,7 +169,6 @@ function updateActionVisibility() {
   } else if (myRole === "Ranger") {
     const myTurn = currentTurn === "ranger";
     sendBtn.classList.add("hidden");
-    trayEl.classList.add("hidden");
     protectBtn.classList.toggle("hidden", !myTurn || locked);
     Object.values(cellEls).forEach(c => c.classList.toggle("protectable", myTurn && !locked));
     if (currentTurn === "households") instructions.textContent = "Waiting for Households to move their harvesters...";
@@ -172,7 +177,6 @@ function updateActionVisibility() {
     else instructions.textContent = "Click up to " + MAX_PROTECTED_ZONES + " cells to protect, then send.";
   } else {
     sendBtn.classList.add("hidden");
-    trayEl.classList.add("hidden");
     protectBtn.classList.add("hidden");
     instructions.textContent = myRole === "GameMaster"
       ? "This name has the GameMaster role. In Cormas, give it the Household or Ranger role, then reload this page."
@@ -185,32 +189,16 @@ function lockHarvesters() {
   sendBtn.disabled = true;
   protectBtn.disabled = true;
   document.querySelectorAll(".harvester-dot").forEach(d => d.remove());
-  trayTokens.forEach(t => t.classList.add("locked"));
   closePicker();
   updateActionVisibility();
 }
 
-const trayTokens = [];
-
-// The 20 harvesters are shared between the families: the server says how many this family has
 function setHarvesterCount(count) {
-  if (!count || count === trayTokens.length) return;
-  trayTokens.forEach(t => t.remove());
-  trayTokens.length = 0;
+  if (!count || count === harvesterPlacement.length) return;
   document.querySelectorAll(".harvester-dot").forEach(d => d.remove());
   harvesterPlacement.length = count;
   harvesterPlacement.fill(null);
-  for (let h = 0; h < count; h++) {
-    const token = document.createElement("div");
-    token.className = "harvester-token";
-    token.textContent = "H" + (h + 1);
-    token.dataset.harvester = h;
-    trayEl.appendChild(token);
-    trayTokens.push(token);
-  }
-  updateTrayColors();
 }
-setHarvesterCount(HARVESTERS);
 
 const BIOMASS_COLORS = ["#f6f6f6", "#c8e6c9", "#81c784", "#388e3c"];
 const cellEls = {};
@@ -219,10 +207,7 @@ for (let id = 1; id <= TOTAL_CELLS; id++) {
   cell.className = "cell";
   cell.dataset.id = id;
   cell.style.background = BIOMASS_COLORS[0];
-  const label = document.createElement("span");
-  label.className = "cell-id";
-  label.textContent = id;
-  cell.appendChild(label);
+  cell.title = cellName(id);
   cell.addEventListener("click", () => {
     if (canMoveHarvesters()) { openPicker(id); return; }
     if (!canProtectZones()) return;
@@ -242,22 +227,30 @@ for (let id = 1; id <= TOTAL_CELLS; id++) {
   cellEls[id] = cell;
 }
 
+function dotsBox(cell) {
+  let box = cell.querySelector(".harvester-dots");
+  if (!box) {
+    box = document.createElement("div");
+    box.className = "harvester-dots";
+    cell.appendChild(box);
+  }
+  return box;
+}
+
 function placeHarvester(h, cellId) {
   removeHarvesterVisual(h);
   harvesterPlacement[h] = cellId;
-  trayTokens[h].classList.add("placed");
-  const dot = document.createElement("div");
-  dot.className = "harvester-dot";
+  const dot = document.createElement("span");
+  dot.className = "harvester-small-dot harvester-dot mine";
   dot.style.background = myColor();
-  dot.textContent = "H" + (h + 1);
+  dot.title = "H" + (h + 1);
   dot.dataset.harvester = h;
-  cellEls[cellId].appendChild(dot);
+  dotsBox(cellEls[cellId]).appendChild(dot);
 }
 
 function unplaceHarvester(h) {
   removeHarvesterVisual(h);
   harvesterPlacement[h] = null;
-  trayTokens[h].classList.remove("placed");
 }
 
 function openPicker(cellId) {
@@ -273,7 +266,7 @@ function closePicker() {
 
 function renderPicker() {
   if (pickerCellId == null) return;
-  pickerTitle.textContent = "Harvesters on cell " + pickerCellId;
+  pickerTitle.textContent = "Harvesters on cell " + cellName(pickerCellId);
   pickerList.innerHTML = "";
   harvesterPlacement.forEach((placedOn, h) => {
     const row = document.createElement("label");
@@ -289,13 +282,12 @@ function renderPicker() {
     });
     const swatch = document.createElement("span");
     swatch.className = "picker-swatch";
-    swatch.style.background = myColor();
     swatch.textContent = "H" + (h + 1);
     const where = document.createElement("span");
     where.className = "picker-where";
     where.textContent = placedOn == null ? "not placed"
       : placedOn === pickerCellId ? "here"
-      : "on cell " + placedOn + " (will move)";
+      : "on cell " + cellName(placedOn) + " (will move)";
     row.appendChild(box);
     row.appendChild(swatch);
     row.appendChild(where);
@@ -338,35 +330,44 @@ function applyProtection(values) {
 }
 
 function applyHarvesters(values) {
-  // One small dot per harvester: your family in blue, the other families in black
   forEachCell(values, (cell, entries) => {
-    let container = cell.querySelector(".harvester-dots");
-    if (entries && entries.length > 0) {
-      if (!container) {
-        container = document.createElement("div");
-        container.className = "harvester-dots";
-        cell.appendChild(container);
+    const box = dotsBox(cell);
+    box.querySelectorAll(".harvester-small-dot:not(.harvester-dot)").forEach(d => d.remove());
+    const placing = box.firstChild;
+    const mine = (entries || []).filter(e => e.household === myName).reduce((sum, e) => sum + e.count, 0);
+    const others = (entries || []).filter(e => e.household !== myName).reduce((sum, e) => sum + e.count, 0);
+    [[mine, myName, "Your family"], [others, "", "Other families"]].forEach(([count, owner, label]) => {
+      for (let i = 0; i < count; i++) {
+        const dot = document.createElement("span");
+        dot.className = "harvester-small-dot" + (owner === myName ? " mine" : "");
+        dot.style.background = colorForHousehold(owner);
+        dot.title = label;
+        box.insertBefore(dot, placing);
       }
-      container.innerHTML = "";
-      const mine = entries.filter(e => e.household === myName).reduce((sum, e) => sum + e.count, 0);
-      const others = entries.filter(e => e.household !== myName).reduce((sum, e) => sum + e.count, 0);
-      [[mine, myName, "Your family"], [others, "", "Other families"]].forEach(([count, owner, label]) => {
-        for (let i = 0; i < count; i++) {
-          const dot = document.createElement("span");
-          dot.className = "harvester-small-dot";
-          dot.style.background = colorForHousehold(owner);
-          dot.title = label;
-          container.appendChild(dot);
-        }
-      });
-    } else if (container) {
-      container.remove();
-    }
+    });
+    if (!box.firstChild) box.remove();
   });
 }
 
 let birdsVisible = false;
 let lastBirds = [];
+function drawNewborns(cell, count) {
+  let box = cell.querySelector(".newborns");
+  if (!count) { if (box) box.remove(); return; }
+  if (!box) {
+    box = document.createElement("div");
+    box.className = "newborns";
+    cell.appendChild(box);
+  }
+  box.innerHTML = "";
+  for (let i = 0; i < count; i++) {
+    const chick = document.createElement("span");
+    chick.className = "poussin icon-poussin";
+    box.appendChild(chick);
+  }
+  box.title = count + " newborn bird(s)";
+}
+
 function applyBirds(values) {
   lastBirds = values;
   forEachCell(values, (cell, entry) => {
@@ -381,17 +382,7 @@ function applyBirds(values) {
     } else if (adultIcon) {
       adultIcon.remove();
     }
-    let newbornChip = cell.querySelector(".newborn-chip");
-    if (entry.newborns > 0) {
-      if (!newbornChip) {
-        newbornChip = document.createElement("div");
-        newbornChip.className = "newborn-chip";
-        cell.appendChild(newbornChip);
-      }
-      newbornChip.innerHTML = "<span class=\"bird-chip-icon icon-poussin\"></span><span>" + entry.newborns + "</span>";
-    } else if (newbornChip) {
-      newbornChip.remove();
-    }
+    drawNewborns(cell, entry.newborns);
   });
 }
 
@@ -496,14 +487,14 @@ const handlers = {
     const newRound = m.round !== currentRound;
     currentRound = m.round;
     finalResults.classList.add("hidden");
-    gridEl.classList.remove("hidden");
+    gridEl.parentElement.classList.remove("hidden");
     if (!newRound) return;
     lastAction = null;
     resetRoundSelections();
     unlock();
     document.querySelectorAll(".harvester-dot").forEach(d => d.classList.remove("locked"));
-    if (m.round > 1) pauseTurns("Round " + m.round + ": new biomass", "Look at the new biomass on the grid. The game master will start the round.");
-    else pauseTurns();
+        if (m.round > 1) pauseTurns("Round " + m.round, "The game master will start the round.");
+        else pauseTurns();
   },
   turn(m) {
     resultCard.classList.add("hidden");
@@ -524,8 +515,7 @@ const handlers = {
   },
   roundEnded(m) {
     locked = true;
-    pauseTurns("Round " + m.round + " is over", "Waiting for the game master to start the next round...");
-  },
+            pauseTurns("Round " + m.round + " is over", "Look at the new biomass on the grid. Waiting for the game master to start the next round...");  },
   roundResult(m) {
 
     resultGain.textContent = "Round " + m.round + ": your family harvested " + m.gain;
@@ -534,8 +524,6 @@ const handlers = {
     resultCard.classList.remove("hidden");
   },
   state(m) {
-    // Sent by the server when the player comes back (reload, lost connection) into a started game:
-    // restore the role, the board, the current turn and the results
     handlers.gameStarted({ payload: { role: m.role } });
     setHarvesterCount(m.harvesterCount);
     applyBiomass(m.biomass);
@@ -547,9 +535,6 @@ const handlers = {
     if (m.finalResults) return handlers.gameOver(m.finalResults);
     if (m.roundResult) handlers.roundResult(m.roundResult);
     if (m.turn) {
-      // The server sends 'state' to everyone after each move: never re-send automatically here,
-      // or every move would make all players send theirs again, endlessly.
-      // Re-send only if the server says it does not have our move (e.g. it was lost with the connection).
       const sent = lastAction && lastAction.round === m.round && lastAction.turn === m.turn ? lastAction : null;
       lastAction = null;
       handlers.round({ round: m.round });
@@ -566,15 +551,23 @@ const handlers = {
       handlers.roundEnded({ round: m.round });
     }
   },
+  charts(m) {
+    if (!window.PlanetCharts) return;
+    finalResults.classList.add("hidden");
+    resultCard.classList.add("hidden");
+    playerChartsEl.classList.remove("hidden");
+    if (!playerCharts) playerCharts = PlanetCharts.mount(playerChartsEl, { focus: myName });
+    playerCharts.update(m);
+  },
   sessionStarted(m) {
-    // Same role and family, new board and scores: start again from round 1
+    playerChartsEl.classList.add("hidden");
     currentRound = null;
     lastAction = null;
     resetRoundSelections();
     unlock();
     finalResults.classList.add("hidden");
     resultCard.classList.add("hidden");
-    gridEl.classList.remove("hidden");
+    gridEl.parentElement.classList.remove("hidden");
     pauseTurns("Session " + m.session, "Same role and family, new board. Waiting for the game master to start round 1...");
   },
   gameOver(m) {
@@ -583,7 +576,7 @@ const handlers = {
     else pauseTurns("Game over", "The game is over. Thank you for playing!");
     const families = m.families || [];
     const roundLabels = Array.from({ length: m.rounds }, (_, i) => "R" + (i + 1));
-    gridEl.classList.add("hidden");
+    gridEl.parentElement.classList.add("hidden");
     resultCard.classList.add("hidden");
 
     finalResults.replaceChildren(
@@ -595,7 +588,7 @@ const handlers = {
         ])),
       heading("Ranger"),
       makeTable(["Round", "Protected zones", "Newborn birds"],
-        (m.ranger || []).map(r => [r.round, r.protected.join(", ") || "-", r.newborns])));
+        (m.ranger || []).map(r => [r.round, r.protected.map(cellName).join(", ") || "-", r.newborns])));
     finalResults.classList.remove("hidden");
   },
   biomass(m) { applyBiomass(m.values); },
@@ -609,7 +602,6 @@ const handlers = {
     show("error", "This name is already used by a connected player. Choose another name.");
   },
   replaced() {
-    // The same name was opened in another tab of this browser: stop here so the tabs don't fight
     leaveGame();
     show("error", "This name was opened in another tab or window.");
   },
@@ -620,15 +612,12 @@ function unlock() {
   locked = false;
   sendBtn.disabled = false;
   protectBtn.disabled = false;
-  trayTokens.forEach(t => t.classList.remove("locked"));
 }
 
 
 const SAVED_NAME_KEY = "cm.name";
 const SAVED_AT_KEY = "cm.nameSavedAt";
 
-// Identifies this phone. A player can always come back from the same phone (reload,
-// closed tab, network drop); nobody else can take the name while the player is connected.
 let playerToken = "";
 try { playerToken = localStorage.getItem("cm.playerToken") || ""; } catch (e) { }
 if (!playerToken) {
