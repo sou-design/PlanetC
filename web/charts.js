@@ -156,8 +156,7 @@ window.PlanetCharts = (() => {
       <div class="pc-grid">
         <figure class="pc-card"><figcaption></figcaption><div></div><p class="pc-legend"></p></figure>
         <figure class="pc-card"><figcaption></figcaption><div></div></figure>
-        <figure class="pc-card"><figcaption></figcaption><div></div>
-          <p class="pc-legend"><i style="background:${COLOR_HARVESTED}"></i>After harvest<i style="background:${COLOR_BIOMASS}"></i>After regeneration</p></figure>
+        <figure class="pc-card"><figcaption></figcaption><div></div></figure>
       </div>`;
     const select = container.querySelector("select");
     const cards = container.querySelectorAll(".pc-card");
@@ -171,7 +170,6 @@ window.PlanetCharts = (() => {
       const gainsOf = f => Array.from({ length: rounds }, (_, i) => (f.gains || [])[i] || 0);
       const rangerOf = i => (data.ranger || []).find(r => r.round === i + 1) || {};
       const births = Array.from({ length: rounds }, (_, i) => rangerOf(i).newborns || 0);
-      const afterHarvest = Array.from({ length: rounds }, (_, i) => rangerOf(i).biomassAfterHarvest ?? null);
       const afterRegen = Array.from({ length: rounds }, (_, i) => rangerOf(i).biomass ?? null);
       const names = data.families.map(f => f.name).sort((a, b) => a.localeCompare(b));
       const colorOf = name => names.length > 1 ? FAMILY_COLORS[names.indexOf(name) % FAMILY_COLORS.length] : COLOR_HARVEST;
@@ -195,8 +193,7 @@ window.PlanetCharts = (() => {
       drawLines(cards[1].querySelector("div"), rounds, [{ name: "Newborn birds", color: COLOR_BIRDS, values: pick(births) }], "Newborn birds");
       
       drawLines(cards[2].querySelector("div"), rounds, [
-        { name: "After harvest", color: COLOR_HARVESTED, values: afterHarvest },
-        { name: "After regeneration", color: COLOR_BIOMASS, values: afterRegen }], ALL);
+        { name: "Biomass", color: COLOR_BIOMASS, values: afterRegen }], "Biomass");
     }
 
     container.querySelector(".pc-mode").addEventListener("click", e => {

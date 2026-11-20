@@ -273,7 +273,6 @@ function renderPicker() {
   pickerTitle.textContent = "Cell " + cellName(pickerCellId) + ": " + here + " harvester" + (here === 1 ? "" : "s");
   pickerHelp.textContent = "Tap a harvester to put it here or take it back. " + home + " at home.";
   pickerList.innerHTML = "";
-  // One button per harvester, in a compact grid: blue = here, outlined = on another cell, grey = at home
   harvesterPlacement.forEach((placedOn, h) => {
     const chip = document.createElement("button");
     chip.type = "button";
@@ -605,8 +604,8 @@ const handlers = {
     show("error", "This name is already used by a connected player. Choose another name.");
   },
   replaced() {
-    leaveGame();
-    show("error", "This name was opened in another tab or window.");
+    leaveGame(true);
+    show("error", "This name was opened in another tab or window. Reload this page to play here.");
   },
   error(m) { show("error", "Error: " + reasonOf(m)); }
 };
@@ -657,8 +656,6 @@ changeNameBtn.addEventListener("click", () => {
   show("", "");
 });
 
-// The name is kept in localStorage (like the player token) so that it survives
-// going back, closing the tab or the phone reloading the page: the player rejoins automatically.
 function readStorage(key) {
   try { return localStorage.getItem(key); } catch (e) { return null; }
 }
@@ -778,13 +775,13 @@ window.addEventListener("pageshow", (e) => { if (e.persisted) checkConnection();
 window.addEventListener("online", checkConnection);
 window.addEventListener("focus", checkConnection);
 
-function leaveGame() {
+function leaveGame(keepSavedName) {
   myName = null;
   lastAction = null;
   clearTimeout(reconnectTimer);
   dropSocket();
   setConnected(true);
-  writeStorage(SAVED_AT_KEY, null);
+  if (!keepSavedName) writeStorage(SAVED_AT_KEY, null);
   changeNameBtn.classList.add("hidden");
   joinTitle.classList.remove("hidden");
   loginEl.classList.remove("hidden");
