@@ -1,10 +1,11 @@
 ui
 refreshCormasUI
-	| spacePresenter builder |
 	runnerPresenter ifNil: [ ^ self ].
-	runnerPresenter displayCurrentTimeStep.
-	spacePresenter := runnerPresenter instVarNamed: 'spacePresenter'.
-	spacePresenter ifNil: [ ^ self ].
-	builder := spacePresenter spaceBuilder.
-	builder renderIn: builder container.
-	builder container signalUpdate
+	UIManager default defer: [ [
+		| spacePresenter builder |
+		runnerPresenter displayCurrentTimeStep.
+		spacePresenter := runnerPresenter instVarNamed: 'spacePresenter'.
+		spacePresenter ifNotNil: [
+			builder := spacePresenter spaceBuilder.
+			builder renderIn: builder container.
+			builder container signalUpdate ] ] on: Error do: [ :e | ] ]
