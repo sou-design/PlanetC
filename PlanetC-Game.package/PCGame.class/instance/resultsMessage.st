@@ -14,4 +14,5 @@ resultsMessage
 				at: 'total' put: household totalGain;
 				at: 'harvesters' put: (self harvesterResultsFor: household);
 				yourself ]);
+		at: 'ranger' put: rangerRounds asArray;
 		yourself

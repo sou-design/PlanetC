@@ -32,6 +32,10 @@ startOn: aPortNumber
 		response entity: (ZnEntity with: (self class web: 'gm.js') type: (ZnMimeType fromString: 'application/javascript')).
 		response headers at: 'Cache-Control' put: 'no-store'.
 		response ].
+	dispatcher map: '/charts.js' to: [ :request :response |
+		response entity: (ZnEntity with: (self class web: 'charts.js') type: (ZnMimeType fromString: 'application/javascript')).
+		response headers at: 'Cache-Control' put: 'no-store'.
+		response ].
 	dispatcher map: '/qrcode.js' to: [ :request :response |
 		response entity: (ZnEntity with: (self class web: 'qrcode.js') type: (ZnMimeType fromString: 'application/javascript')) ].
 	dispatcher map: '/icons/bird.png' to: [ :request :response |

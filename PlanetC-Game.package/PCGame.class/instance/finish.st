@@ -2,7 +2,7 @@ game flow
 finish
 	| model |
 	model := self cormasModel.
-	((phase = 'ready' or: [ phase = 'ended' ]) and: [ model currentStep > 1 ])
+	((#('ready' 'regenerated' 'ended') includes: phase) and: [ model currentStep > 1 ])
 		ifFalse: [ ^ 'notReady' ].
 	finished := true.
 	model maxSteps: model currentStep - 1.

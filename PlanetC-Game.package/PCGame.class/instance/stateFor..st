@@ -50,7 +50,7 @@ stateFor: aClient
 			yourself ].
 
 
-	(isHousehold and: [ #('ready' 'newBiomass' 'ended') includes: phase ]) ifTrue: [
+	(isHousehold and: [ #('ready' 'regenerated' 'ended') includes: phase ]) ifTrue: [
 		gains := household gains.
 		gains ifNotEmpty: [
 			state at: 'roundResult' put: (Dictionary new

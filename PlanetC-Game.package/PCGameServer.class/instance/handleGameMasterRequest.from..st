@@ -61,9 +61,12 @@ handleGameMasterRequest: aDictionary from: aClient
 		^ answer value: (self
 			assignRole: (aDictionary at: 'role' ifAbsent: [ '' ])
 			toPlayerNamed: (aDictionary at: 'player' ifAbsent: [ '' ])) ].
-		type = 'gmNextSession' ifTrue: [
+	type = 'gmNextSession' ifTrue: [
 		^ answer value: ([ game startSecondSession ] on: Error do: [ :e | e messageText ]) ].
 	type = 'gmFinish' ifTrue: [ ^ answer value: game finish ].
+
+	type = 'gmShowCharts' ifTrue: [
+		^ self broadcast: (game resultsMessage at: 'type' put: 'charts'; yourself) ].
 
 	type = 'gmShowBirds' ifTrue: [ ^ self broadcast: (Dictionary new at: 'type' put: 'showBirds'; at: 'show' put: (aDictionary at: 'show'); yourself) ].
 

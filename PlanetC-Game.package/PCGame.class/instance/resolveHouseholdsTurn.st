@@ -9,11 +9,10 @@ resolveHouseholdsTurn
 		at: 'round' put: round;
 		at: 'protected' put: ((model cells select: #isProtected) collect: [ :c | model cells indexOf: c ]) asArray;
 		at: 'newborns' put: model totalNewborns;
+		at: 'biomassAfterHarvest' put: model biomassAfterHarvest;
 		yourself).
 	self incrementCurrentTimeStep.
-	phase := model currentStep > model maxSteps
-		ifTrue: [ 'ended' ]
-		ifFalse: [ 'ready' ].
+	phase := 'ready'.
 	model removeDestroyedEntities.
 	self recordData.
 	self broadcastState.
