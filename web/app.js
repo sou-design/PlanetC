@@ -532,28 +532,40 @@ const handlers = {
     applyHarvesters(m.harvesters.map(h => [
       { household: myName, count: h.mine },
       { household: "", count: h.others }].filter(e => e.count > 0)));
-    if (m.finalResults) return handlers.gameOver(m.finalResults);
-    if (m.roundResult) handlers.roundResult(m.roundResult);
-    if (m.turn) {
-      const sent = lastAction && lastAction.round === m.round && lastAction.turn === m.turn ? lastAction : null;
-      lastAction = null;
-      handlers.round({ round: m.round });
-      handlers.turn({ round: m.round, turn: m.turn, seconds: m.secondsLeft });
-      lastAction = sent;
-      if (m.submitted) lockHarvesters();
-      else if (sent) { sendNow(sent.payload); lockHarvesters(); }
-    } else if (m.phase === "rangerDone" || m.phase === "householdsDone") {
-      handlers.round({ round: m.round });
-      handlers.turnEnded();
-    } else if (m.phase === "newBiomass") {
-      handlers.round({ round: m.round });
-    } else if (m.phase === "regenerated") {
-      handlers.regenerated({ round: m.round });
-    } else if (m.round > 0) {
-      handlers.roundEnded({ round: m.round });
+    if (m.finalResults) handlers.gameOver(m.finalResults);
+    else if (m.roundResult) handlers.roundResult(m.roundResult);
+    if (!m.finalResults) {
+      if (m.turn) {
+        const sent = lastAction && lastAction.round === m.round && lastAction.turn === m.turn ? lastAction : null;
+        lastAction = null;
+        handlers.round({ round: m.round });
+        handlers.turn({ round: m.round, turn: m.turn, seconds: m.secondsLeft });
+        lastAction = sent;
+        if (m.submitted) lockHarvesters();
+        else if (sent) { sendNow(sent.payload); lockHarvesters(); }
+      } else if (m.phase === "rangerDone" || m.phase === "householdsDone") {
+        handlers.round({ round: m.round });
+        handlers.turnEnded();
+      } else if (m.phase === "newBiomass") {
+        handlers.round({ round: m.round });
+      } else if (m.phase === "regenerated") {
+        handlers.regenerated({ round: m.round });
+      } else if (m.round > 0) {
+        handlers.roundEnded({ round: m.round });
+      }
+    }
+    if (playerChartsEl.classList.contains("hidden")) {
+      let saved = null;
+      try { saved = JSON.parse(sessionStorage.getItem("cm.charts")); } catch (e) { }
+      if (saved) {
+        const resultShown = !resultCard.classList.contains("hidden");
+        handlers.charts(saved);
+        if (resultShown && m.roundResult && m.roundResult.round > (saved.rounds || 0)) resultCard.classList.remove("hidden");
+      }
     }
   },
   charts(m) {
+    try { sessionStorage.setItem("cm.charts", JSON.stringify(m)); } catch (e) { }
     if (!window.PlanetCharts) return;
     finalResults.classList.add("hidden");
     resultCard.classList.add("hidden");
@@ -562,6 +574,7 @@ const handlers = {
     playerCharts.update(m);
   },
   sessionStarted(m) {
+    try { sessionStorage.removeItem("cm.charts"); } catch (e) { }
     playerChartsEl.classList.add("hidden");
     currentRound = null;
     lastAction = null;
@@ -657,19 +670,26 @@ changeNameBtn.addEventListener("click", () => {
 });
 
 function readStorage(key) {
+  try {
+    const own = sessionStorage.getItem(key);
+    if (own != null) return own;
+  } catch (e) { }
   try { return localStorage.getItem(key); } catch (e) { return null; }
 }
 
 function writeStorage(key, value) {
-  try {
-    if (value == null) localStorage.removeItem(key);
-    else localStorage.setItem(key, value);
-  } catch (e) { }
+  [sessionStorage, localStorage].forEach(store => {
+    try {
+      if (value == null) store.removeItem(key);
+      else store.setItem(key, value);
+    } catch (e) { }
+  });
 }
 
 function saveName(name) {
   writeStorage(SAVED_NAME_KEY, name);
   writeStorage(SAVED_AT_KEY, String(Date.now()));
+  try { localStorage.setItem("cm.alive." + name, String(Date.now())); } catch (e) { }
 }
 
 function setConnected(connected) {
@@ -781,7 +801,7 @@ function leaveGame(keepSavedName) {
   clearTimeout(reconnectTimer);
   dropSocket();
   setConnected(true);
-  if (!keepSavedName) writeStorage(SAVED_AT_KEY, null);
+  if (!keepSavedName) { writeStorage(SAVED_AT_KEY, null); try { sessionStorage.removeItem("cm.charts"); } catch (e) { } }
   changeNameBtn.classList.add("hidden");
   joinTitle.classList.remove("hidden");
   loginEl.classList.remove("hidden");
@@ -823,11 +843,30 @@ protectBtn.addEventListener("click", () => sendAction(canProtectZones(),
   "You can only protect zones during the Ranger turn",
   { type: "protect", cells: Array.from(protectedZones) }));
 
+const ALIVE_PREFIX = "cm.alive.";
+const ALIVE_MS = 10000;
+setInterval(() => {
+  if (myName && ws && ws.readyState === WebSocket.OPEN) {
+    try { localStorage.setItem(ALIVE_PREFIX + myName, String(Date.now())); } catch (e) { }
+  }
+}, 3000);
+window.addEventListener("pagehide", () => {
+  if (myName) try { localStorage.removeItem(ALIVE_PREFIX + myName); } catch (e) { }
+});
+
+function playedInAnotherTab(name) {
+  try { return Date.now() - (Number(localStorage.getItem(ALIVE_PREFIX + name)) || 0) < ALIVE_MS; }
+  catch (e) { return false; }
+}
+
 (function rejoinAfterReload() {
+  let ownName = null;
+  try { ownName = sessionStorage.getItem(SAVED_NAME_KEY); } catch (e) { }
   const savedName = readStorage(SAVED_NAME_KEY) || "";
   const savedAt = Number(readStorage(SAVED_AT_KEY)) || 0;
   nameInput.value = savedName;
   if (!savedName || Date.now() - savedAt > REJOIN_WINDOW_MS) return;
+  if (!ownName && playedInAnotherTab(savedName)) { nameInput.value = ""; return; }
   joinTitle.classList.add("hidden");
   loginEl.classList.add("hidden");
   show("ok", "Joining as " + savedName + "...");
